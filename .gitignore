@@ -1,0 +1,6 @@
+#MPLAB folders
+build
+debug
+dist
+nbproject
+Makefile
