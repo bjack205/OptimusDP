@@ -5,7 +5,8 @@
 extern "C" {
 #endif
 
-    
+// Add comment by Brian
+
 #include<p24F16KA301.h>
 #include<math.h>
     
