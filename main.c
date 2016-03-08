@@ -10,8 +10,9 @@ _FOSC(OSCIOFNC_OFF)//Turn off Secondary oscillator
 // Global Variables
 int step = 0;
 int step_target = 0;
-typedef enum{start, forward, offon} statedef;
+typedef enum{start, forward, turning, end} statedef;
 statedef state = start;
+int start_button = 0;
 
 void __attribute__((interrupt, no_auto_psv)) _T2Interrupt(void)
 {
@@ -32,14 +33,13 @@ void StepperStop(){
 int StepFinished(){
     if (step > step_target) {
         step = 0;
-        state = start;
         StepperStop();
         return 1;
     }
     return 0;
 }
 
-void Stepper(double angle, char direction, int speed, int step_size){
+void TurnRobot(double angle, char direction, int speed, int step_size){
     //Validate step size input
     if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
         step_size = 1; //default to whole step
@@ -53,31 +53,83 @@ void Stepper(double angle, char direction, int speed, int step_size){
     stepper_out(step_size, direction, speed);
 }
 
+void DriveRobot(double distance, char direction, int speed, int step_size) {
+    //Validate step size input
+    if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
+        step_size = 1; //default to whole step
+
+    //Validate speed
+    if (speed < 0 || speed > 4)
+        speed = 2; // Default to half speed 
+
+    
+    step_target = distance*step_size; // calculate number of steps
+    stepper_out(step_size, direction, speed);  
+}
+
+int Start_Check() {
+    int current_state = _RB14;
+    if (_RB14 != start_button && _RB14 == 1) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+    
+    
+}
+
+
 int main () {
     
     
-    _ANSA0 = 0; // Set up AN0 (Pin 2) as analog
-    _TRISA0 = 0; // Set up Pin 2 as input
-    _ANSA1 = 0; // Set up AN1 (Pin 3) as analog
-    _TRISA1 = 0; // Set up Pin 3 as input
+    _ANSA0 = 0; // Set up AN0 (Pin 2) as digital
+    _TRISA0 = 0; // Set up Pin 2 as output
+    _ANSA1 = 0; // Set up AN1 (Pin 3) as digital
+    _TRISA1 = 0; // Set up Pin 3 as output
+    _ANSB14 = 0; // Set up pin 17 as digital
+    _TRISB14 = 1; // Set up pin 17 as input for push button start
     
-    step = 0;
+    int counter = 0;
+    
     config_step1();
-    Stepper(90,'R', 4, 1);
-    state = forward;
+    
     
     _LATA0 = 0;
     _LATA1 = 0;
-    
-    while(1){
-        switch (state){
-            case forward:
-                if (StepFinished())
+    while(1) {
+        switch (state) {
+            case start:
+                if (Start_Check()) {
                     _LATA0 = 1;
+                    state = forward;
+                    counter = 0;
+                   // TurnRobot(90, 'R', 2, 1);
+                    DriveRobot(200, 'F', 1, 1);
+                }
                 break;
+            case forward:
+                if (StepFinished()) {
+                    counter++;
+                    if (counter == 2) {
+                        state = start;
+                    }
+                    else {
+                        state = turning;
+                        TurnRobot(90, 'R', 1, 1);
+                    }
+                }
+                break;
+            case turning:
+                if (StepFinished()) {
+                    state = forward;
+                    DriveRobot(200, 'F', 1, 1);
+                }
+                break;
+            case end:
+               // if (step >= )
             default:
                 state = start;
-                
         }
     }
     // Drive CW, 1/2 step
