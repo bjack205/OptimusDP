@@ -40,6 +40,8 @@ int StepFinished(){
 }
 
 void TurnRobot(double angle, char direction, int speed, int step_size){
+    step = 0;
+    TMR2 = 0;
     //Validate step size input
     if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
         step_size = 1; //default to whole step
@@ -54,6 +56,8 @@ void TurnRobot(double angle, char direction, int speed, int step_size){
 }
 
 void DriveRobot(double distance, char direction, int speed, int step_size) {
+    step = 0;
+    TMR2 = 0;
     //Validate step size input
     if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
         step_size = 1; //default to whole step
@@ -94,6 +98,7 @@ int main () {
     
     config_step1();
     
+    int speed = 2;
     
     _LATA0 = 0;
     _LATA1 = 0;
@@ -105,7 +110,7 @@ int main () {
                     state = forward;
                     counter = 0;
                    // TurnRobot(90, 'R', 2, 1);
-                    DriveRobot(200, 'F', 1, 1);
+                    DriveRobot(200, 'F', speed, 1);
                 }
                 break;
             case forward:
@@ -116,14 +121,14 @@ int main () {
                     }
                     else {
                         state = turning;
-                        TurnRobot(90, 'R', 1, 1);
+                        TurnRobot(90, 'R', speed, 1);
                     }
                 }
                 break;
             case turning:
                 if (StepFinished()) {
                     state = forward;
-                    DriveRobot(200, 'F', 1, 1);
+                    DriveRobot(200, 'F', speed, 1);
                 }
                 break;
             case end:
