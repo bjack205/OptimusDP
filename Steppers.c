@@ -33,9 +33,9 @@ void config_step1(void)
     
 }
 
-void stepper_out(int stepsize ,char direction, int speed)
+void stepper_out(int stepsize, char direction, int speed)
 {
-    //Turn off Sleep
+    //Turn off sleep
     _LATB0 = 1;
     
     //Set Step Size (Reciprocal of Step: 2 = 1/2 step, 8 = 1/8 step)
@@ -89,9 +89,11 @@ void stepper_out(int stepsize ,char direction, int speed)
     
     double fmax = 500;
     double freq;
+    double DC = 50.0; // Default Duty Cycle
     switch (speed){
         case 0:
-            freq = 0;
+            freq = fmax;
+            DC = 0;
             break;
         case 1:
             freq = fmax/4.0;
@@ -114,7 +116,7 @@ void stepper_out(int stepsize ,char direction, int speed)
     if (freq > 1000)
         freq = 1000;
     
-    PWM_Out(freq,50.0,64,1);
+    PWM_Out(freq,DC,64,1);
     
 }
 
