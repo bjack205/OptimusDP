@@ -13,7 +13,7 @@ extern "C" {
 #define PI 3.14159265358979323846
 #define Vref 3.3
 #define Fcy 4000000
-#define R_base 115
+#define R_base 120
 
 
 
