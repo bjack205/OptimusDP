@@ -11,7 +11,7 @@ _FOSC(OSCIOFNC_OFF)//Turn off Secondary oscillator
 int gtime = 0;
 int step = 0;
 int step_target = 0;
-typedef enum{test, start, forward, turning, end, reload} statedef;
+typedef enum{test, start, tocenter, forward, turning, end, reload} statedef;
 statedef state = start;
 int start_button = 0;
 
@@ -67,20 +67,31 @@ void TurnRobot(double angle, char direction, int speed, int step_size){
     stepper_out(step_size, direction, speed);
 }
 
-void DriveRobot(double distance, char direction, int speed, int step_size) {
-    step = 0;
-    TMR2 = 0;
-    //Validate step size input
-    if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
-        step_size = 1; //default to whole step
+int DriveRobot(double distance, char direction, int speed, int step_size) {
+    static int drivestate = 0;
+    switch (drivestate){
+        case 0: //Start
+            step = 0;
+            TMR2 = 0;
+            //Validate step size input
+            if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
+                step_size = 1; //default to whole step
 
-    //Validate speed
-    if (speed < 0 || speed > 4)
-        speed = 2; // Default to half speed 
+            //Validate speed
+            if (speed < 0 || speed > 4)
+                speed = 2; // Default to half speed 
 
-    
-    step_target = distance*step_size; // calculate number of steps
-    stepper_out(step_size, direction, speed);  
+            step_target = distance*step_size; // calculate number of steps
+            stepper_out(step_size, direction, speed);
+            
+            drivestate = 1;
+        case 1: //Driving
+            if (StepFinished()){
+                drivestate = 0;
+                return 1;
+            }          
+    }
+    return 0;
 }
 
 int Start_Check() {
@@ -160,7 +171,7 @@ int main () {
     config_step1();
     state = test;
     
-    int speed = 1;
+    int speed = 3;
     
     _LATA0 = 0;
     _LATA1 = 0;
@@ -168,9 +179,14 @@ int main () {
         switch (state) {
             case test:
                 if (Start_Check()){
-                    state = reload;
+                    state = tocenter;
                 }
                 else {
+                }
+                break;
+            case tocenter:
+                if (DriveRobot(200,'F',speed,2)){
+                    state = test;
                 }
                 break;
             case reload:
