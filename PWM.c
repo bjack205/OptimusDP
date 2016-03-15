@@ -1,5 +1,18 @@
 #include"PWM.h"
 
+void TMR1_Config(){
+    _TCKPS = 0b00; //1:1 prescale
+    _TCS = 0; //Internal Clock
+    _TGATE = 0; // Turn off gated time accumulation
+    _T1IP = 4; // Interrupt Priority
+    _T1IE = 1; // Enable interrupt
+    _T1IF = 0; // Clear Flag
+    
+    PR1 = 4000; // Every 1 mil
+    _TON = 1; //Turn timer on
+}
+
+
 void PWM1_Config(int PS){
     //Set up PWM on OC1 (Pin 14) with Timer 2
     
