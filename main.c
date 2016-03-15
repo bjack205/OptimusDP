@@ -11,7 +11,7 @@ _FOSC(OSCIOFNC_OFF)//Turn off Secondary oscillator
 int gtime = 0;
 int step = 0;
 int step_target = 0;
-typedef enum{start, forward, turning, end, test} statedef;
+typedef enum{test, start, forward, turning, end, reload} statedef;
 statedef state = start;
 int start_button = 0;
 
@@ -98,23 +98,36 @@ int Start_Check() {
     
  }
 
-int Solenoid(double time){
+int Solenoid(double timeON, double timeOFF, int repeat){
     static int SolState = 0;
     static int startTime = 0;
+    static int repeat_count = 1;
     switch (SolState){
         case 0: //New
             startTime = gtime;
             SolState = 1;
             _LATB1 = 1;
             break;
-        case 1: // Running
-            if (gtime - startTime > time){
+        case 1: // Activated
+            if (gtime - startTime > timeON){ //On time finished
+                _LATB1 = 0; // Turn off
                 SolState = 2;
             }
             break;
-        case 2: // End
+        case 2: //Off
+            if (gtime - startTime > timeON + timeOFF) {
+                if (repeat_count >= repeat){
+                    SolState = 3; //Exit
+                }
+                else {
+                    SolState = 0; // Repeat
+                }
+                repeat_count++;
+            }
+            break;
+        case 3: // End
             SolState = 0;
-            _LATB1 = 0;
+            repeat_count = 1;
             return 1;
     }
     return 0;
@@ -154,11 +167,15 @@ int main () {
     while(1) {
         switch (state) {
             case test:
-                if (_RB14){
-                    if(Solenoid(1000))
-                        state = end;
+                if (Start_Check()){
+                    state = reload;
                 }
                 else {
+                }
+                break;
+            case reload:
+                if(Solenoid(50,500,6)){
+                    state = test;
                 }
                 break;
             case start:
