@@ -86,10 +86,65 @@ int DriveRobot(double distance, char direction, int speed, int step_size) {
             
             drivestate = 1;
         case 1: //Driving
-            if (StepFinished()){
+            if (StepFinished()){ // Finished
                 drivestate = 0;
                 return 1;
             }          
+    }
+    return 0;
+}
+
+int RampRobot(double distance, char direction, int speed, int step_size) {
+    static int drivestate = 0;
+    static double ramp_speed = 20;
+    static int ramp_time = 0;
+    int ramp_rate = 1;
+    int delay = 25;
+    
+    switch (drivestate){
+        case 0: //Start
+            step = 0;
+            TMR2 = 0;
+            //Validate step size input
+            if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
+                step_size = 1; //default to whole step
+
+            step_target = distance*step_size; // calculate number of steps
+            ramp_time = gtime;
+            
+            drivestate = 1;
+        case 1: //Ramp up Speed
+            if (ramp_speed < speed) {
+                if (gtime-ramp_time > delay){
+                    ramp_speed += ramp_rate;
+                    ramp_time = gtime;
+                    
+                    stepper_out_ramp(step_size, direction, ramp_speed);
+                }
+            }
+            else {
+                stepper_out_ramp(step_size, direction, speed);
+                drivestate = 2;
+            }
+        case 2: // Max Speed
+            if (step > step_target-speed){
+                drivestate = 3;
+            }
+        case 3: // Ramp down to stop
+            if (StepFinished()){ // Stop
+                drivestate = 0;
+                ramp_time = 0;
+                ramp_speed = 20;
+                return 1;
+            }    
+            else { 
+                if (gtime-ramp_time > delay && ramp_speed > 20) {
+                    ramp_speed -= ramp_rate;
+                    ramp_time = gtime;
+                    stepper_out_ramp(step_size, direction, ramp_speed);
+                }
+            }
+            
     }
     return 0;
 }
@@ -164,7 +219,6 @@ int main () {
     _TRISB15 = 1; // Set Pin 18 as input
     
     
-    
     int counter = 0;
     
     TMR1_Config();
@@ -172,6 +226,20 @@ int main () {
     state = test;
     
     int speed = 3;
+    
+    
+    if (1){
+        int i = 20;
+        int time = gtime;
+        while(i<400) {
+            if (gtime - time > 15){
+                stepper_out_ramp(2, 'F', i);
+                time = gtime;
+                i++;
+            }
+        }
+    }
+    
     
     _LATA0 = 0;
     _LATA1 = 0;
@@ -185,12 +253,13 @@ int main () {
                 }
                 break;
             case tocenter:
-                if (DriveRobot(200,'F',speed,2)){
+                if (RampRobot(1000,'F',200,1)){
                     state = test;
                 }
                 break;
             case reload:
                 if(Solenoid(50,500,6)){
+                    StepperStop();
                     state = test;
                 }
                 break;
