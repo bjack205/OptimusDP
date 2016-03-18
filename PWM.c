@@ -102,14 +102,17 @@ void PWM_Out(double Freq, double DC, int PS, int Ch){
     
     switch (Ch){
         case 1:
+            TMR2 = 0;
             OC1R = Ton_ticks;
             PR2 = Tperiod;
             T2CONbits.TCKPS = PS_bit(PS);
         case 2:
+            TMR3 = 0;
             OC2R = Ton_ticks;
             PR3 = Tperiod;
             T3CONbits.TCKPS = PS_bit(PS);
         case 3:
+            TMR4 = 0;
             OC3R = Ton_ticks;
             PR4 = Tperiod;
             T4CONbits.TCKPS = PS_bit(PS);
