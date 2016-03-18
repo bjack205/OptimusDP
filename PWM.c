@@ -34,6 +34,9 @@ void PWM1_Config(int PS){
     TMR1 = 0;
     T2CONbits.TON = 1; 
     
+    //_T2IE = 1;
+    _OC1IE = 1;
+    
     
 }
 
@@ -109,6 +112,7 @@ void PWM_Out(double Freq, double DC, int PS, int Ch){
             //TMR2 = 0;
             OC1R = Ton_ticks;
             OC1RS = Tperiod;
+            PR2 = Tperiod;
             T2CONbits.TCKPS = PS_bit(PS);
         case 2:
             //TMR3 = 0;

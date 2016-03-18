@@ -183,9 +183,6 @@ void stepper_out_ramp(int stepsize, char direction, int freq)
     }
     freq *= stepsize;
     
-    if (freq > 1000)
-        freq = 1000;
-    
     PWM_Out(freq,DC,64,1);
     
 }

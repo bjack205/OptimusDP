@@ -15,6 +15,11 @@ typedef enum{test, start, tocenter, forward, turning, end, reload} statedef;
 statedef state = start;
 int start_button = 0;
 
+void __attribute__((interrupt, no_auto_psv)) _OC1Interrupt(void){
+    _OC1IF = 0;
+    step++;
+}
+
 void __attribute__((interrupt, no_auto_psv)) _T1Interrupt(void)
 {
     // Clear Timer1 interrupt flag so that the program doesn't just jump
@@ -33,7 +38,8 @@ void __attribute__((interrupt, no_auto_psv)) _T2Interrupt(void)
     _T2IF = 0;
 
     // Increase step by 1 
-    step = step + 1;
+
+    //step = step + 1;
     
 }
 
@@ -85,11 +91,13 @@ int DriveRobot(double distance, char direction, int speed, int step_size) {
             stepper_out(step_size, direction, speed);
             
             drivestate = 1;
+            break;
         case 1: //Driving
             if (StepFinished()){ // Finished
                 drivestate = 0;
                 return 1;
             }          
+            break;
     }
     return 0;
 }
@@ -98,8 +106,8 @@ int RampRobot(double distance, char direction, int speed, int step_size) {
     static int drivestate = 0;
     static double ramp_speed = 20;
     static int ramp_time = 0;
-    int ramp_rate = 1;
-    int delay = 25;
+    int ramp_rate = 2;
+    int delay = 2;
     
     switch (drivestate){
         case 0: //Start
@@ -113,6 +121,7 @@ int RampRobot(double distance, char direction, int speed, int step_size) {
             ramp_time = gtime;
             
             drivestate = 1;
+            break;
         case 1: //Ramp up Speed
             if (ramp_speed < speed) {
                 if (gtime-ramp_time > delay){
@@ -126,10 +135,12 @@ int RampRobot(double distance, char direction, int speed, int step_size) {
                 stepper_out_ramp(step_size, direction, speed);
                 drivestate = 2;
             }
+            break;
         case 2: // Max Speed
-            if (step > step_target-speed){
+            if (step > step_target*3.0/4.0){
                 drivestate = 3;
             }
+            break;
         case 3: // Ramp down to stop
             if (StepFinished()){ // Stop
                 drivestate = 0;
@@ -144,6 +155,7 @@ int RampRobot(double distance, char direction, int speed, int step_size) {
                     stepper_out_ramp(step_size, direction, ramp_speed);
                 }
             }
+            break;
             
     }
     return 0;
@@ -228,7 +240,7 @@ int main () {
     int speed = 3;
     
     
-    if (1){
+    if (0){
         int i = 20;
         int time = gtime;
         while(i<400) {
@@ -253,7 +265,7 @@ int main () {
                 }
                 break;
             case tocenter:
-                if (RampRobot(1000,'F',200,1)){
+                if (RampRobot(4000,'F',1200,1)){
                     state = test;
                 }
                 break;
