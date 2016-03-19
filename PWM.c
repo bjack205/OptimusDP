@@ -17,20 +17,27 @@ void PWM1_Config(int PS){
     //Set up PWM on OC1 (Pin 14) with Timer 2
     
     //Configure Timer 2
-    T2CONbits.TON = 0; // Turn on Timer 2
+    T2CONbits.TON = 0; // Turn off Timer 2
     T2CONbits.TCKPS = PS_bit(PS); //8 pre-scaling
     T2CONbits.TCS = 0; // Select Internal Osc
     T2CONbits.T32 = 0; //16 bit timer
     
     //Sets up Output Compare Module
-    OC1CON2bits.SYNCSEL = 0b01100; //Sync with Timer 2
+    //OC1CON2bits.SYNCSEL = 0b01100; //Sync with Timer 2
+    OC1CON2bits.SYNCSEL = 0x1F;
     OC1CON2bits.OCTRIG = 0;
     
     //Select Clock Source
     OC1CON1bits.OCTSEL  = 0b000; //Select Timer 2
     OC1CON1bits.OCM = 0b110; //Edge-aligned
     
+    TMR1 = 0;
     T2CONbits.TON = 1; 
+    
+    //_T2IE = 1;
+    _OC1IE = 1;
+    
+    
 }
 
 void PWM2_Config(int PS){
@@ -102,17 +109,18 @@ void PWM_Out(double Freq, double DC, int PS, int Ch){
     
     switch (Ch){
         case 1:
-            TMR2 = 0;
+            //TMR2 = 0;
             OC1R = Ton_ticks;
+            OC1RS = Tperiod;
             PR2 = Tperiod;
             T2CONbits.TCKPS = PS_bit(PS);
         case 2:
-            TMR3 = 0;
+            //TMR3 = 0;
             OC2R = Ton_ticks;
             PR3 = Tperiod;
             T3CONbits.TCKPS = PS_bit(PS);
         case 3:
-            TMR4 = 0;
+            //TMR4 = 0;
             OC3R = Ton_ticks;
             PR4 = Tperiod;
             T4CONbits.TCKPS = PS_bit(PS);
