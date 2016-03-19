@@ -228,28 +228,28 @@ int Solenoid(double timeON, double timeOFF, int repeat){
 
 int ReadIR() {
     static char IRState = 'H'; // H = Home, S = Search for IR, F = Found IR and hone in
-    float IRThreshold = 2.0;
+    float IRThreshold = 1.0;
     float VoltageFront = (ADC1BUF0 / 4095) * 3.3;
     float VoltageLeft = (ADC1BUF1 / 4095) * 3.3;
     float VoltageRight = (ADC1BUF4 / 4095) * 3.3;
     
-    switch (IRState) {
-        case 'H':
-            TurnRobot(180, 'L', 1, 1);
-            if (VoltageLeft >= IRThreshold) {
-                TurnRobot(90, 'R', 1, 1);
-            }
-            else if (VoltageRight >= IRThreshold) {
-                TurnRobot(90, 'L', 1, 1);
-            }
-            else {
-                
-            }
-        case 'S':
-        case 'F':
-        default:
-            
-    }
+//    switch (IRState) {
+//        case 'H':
+//            TurnRobot(180, 'L', 1, 1);
+//            if (VoltageLeft >= IRThreshold) {
+//                TurnRobot(90, 'R', 1, 1);
+//            }
+//            else if (VoltageRight >= IRThreshold) {
+//                TurnRobot(90, 'L', 1, 1);
+//            }
+//            else {
+//                
+//            }
+//        case 'S':
+//        case 'F':
+//        default:
+//            
+//    }
     
     // Front IR
     if (VoltageFront >= IRThreshold) {
