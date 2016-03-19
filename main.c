@@ -265,7 +265,7 @@ int main () {
                 }
                 break;
             case tocenter:
-                if (RampRobot(4000,'F',1200,1)){
+                if (DriveRobot(200,'F',1,1)){
                     state = test;
                 }
                 break;
