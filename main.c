@@ -85,11 +85,13 @@ int DriveRobot(double distance, char direction, int speed, int step_size) {
             stepper_out(step_size, direction, speed);
             
             drivestate = 1;
+            break;
         case 1: //Driving
             if (StepFinished()){
                 drivestate = 0;
                 return 1;
             }          
+            break;
     }
     return 0;
 }
@@ -185,7 +187,7 @@ int main () {
                 }
                 break;
             case tocenter:
-                if (DriveRobot(200,'F',speed,2)){
+                if (DriveRobot(1680,'F',speed,2)){
                     state = test;
                 }
                 break;
