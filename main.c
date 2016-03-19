@@ -289,14 +289,18 @@ int ReadIR() {
     // Left IR
     if (VoltageLeft >= IRThreshold) {
         // turn toward LED
-        TurnRobot(90, 'L', 1, 1);
+        if (TurnRobot(90, 'L', 1, 1)) {
+            state = test;
+        }
         return 1;
     }
     
     // Right IR
     if (VoltageRight >= IRThreshold) {
         //turn toward LED
-        TurnRobot(90, 'R', 1, 1);
+        if (TurnRobot(90, 'R', 1, 1)) {
+            state = test;
+        }
         return 2;
     }
     
