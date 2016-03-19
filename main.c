@@ -56,20 +56,35 @@ int StepFinished(){
     return 0;
 }
 
-void TurnRobot(double angle, char direction, int speed, int step_size){
-    step = 0;
-    TMR2 = 0;
-    //Validate step size input
-    if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
-        step_size = 1; //default to whole step
-    
-    //Validate speed
-    if (speed < 0 || speed > 4)
-        speed = 2; // Default to half speed 
-    
-    angle = angle*PI/180.0; //convert to radians
-    step_target = R_base*angle*step_size; // calculate number of steps
-    stepper_out(step_size, direction, speed);
+int TurnRobot(double angle, char direction, int speed, int step_size){
+    static int turnstate = 0;
+    switch (turnstate) {
+        case 0:
+            step = 0;
+            TMR2 = 0;
+            
+            //Validate step size input
+            if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
+                step_size = 1; //default to whole step
+
+            //Validate speed
+            if (speed < 0 || speed > 4)
+                speed = 2; // Default to half speed 
+
+            angle = angle * PI / 180.0; //convert to radians
+            step_target = R_base * angle*step_size; // calculate number of steps
+            stepper_out(step_size, direction, speed);
+            
+            turnstate = 1;
+            break;
+        case 1:
+            if (StepFinished()) {
+                turnstate = 0;
+                return 1;
+            }
+            break;
+    }
+    return 0;
 }
 
 int DriveRobot(double distance, char direction, int speed, int step_size) {
@@ -238,6 +253,54 @@ int Launch(){
             
     }
     return 0;
+}
+
+int ReadIR() {
+    static char IRState = 'H'; // H = Home, S = Search for IR, F = Found IR and hone in
+    float IRThreshold = 2.0;
+    float VoltageFront = (ADC1BUF0 / 4095) * 3.3;
+    float VoltageLeft = (ADC1BUF1 / 4095) * 3.3;
+    float VoltageRight = (ADC1BUF4 / 4095) * 3.3;
+    
+    switch (IRState) {
+        case 'H':
+            TurnRobot(180, 'L', 1, 1);
+            if (VoltageLeft >= IRThreshold) {
+                TurnRobot(90, 'R', 1, 1);
+            }
+            else if (VoltageRight >= IRThreshold) {
+                TurnRobot(90, 'L', 1, 1);
+            }
+            else {
+                
+            }
+        case 'S':
+        case 'F':
+        default:
+            
+    }
+    
+    // Front IR
+    if (VoltageFront >= IRThreshold) {
+        // Don't turn
+        return 0;
+    }
+    
+    // Left IR
+    if (VoltageLeft >= IRThreshold) {
+        // turn toward LED
+        TurnRobot(90, 'L', 1, 1);
+        return 1;
+    }
+    
+    // Right IR
+    if (VoltageRight >= IRThreshold) {
+        //turn toward LED
+        TurnRobot(90, 'R', 1, 1);
+        return 2;
+    }
+    
+    return -1;
 }
 
 
