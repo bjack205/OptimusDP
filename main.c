@@ -11,7 +11,7 @@ _FOSC(OSCIOFNC_OFF)//Turn off Secondary oscillator
 int gtime = 0;
 int step = 0;
 int step_target = 0;
-typedef enum{test, start, tocenter, forward, turning, end, reload} statedef;
+typedef enum{test, start, tocenter, forward, turning, end, reload, launch} statedef;
 statedef state = start;
 int start_button = 0;
 
@@ -45,7 +45,6 @@ void __attribute__((interrupt, no_auto_psv)) _T2Interrupt(void)
 
 void StepperStop(){
     stepper_out(1, 0, 0);
-    _LATB0 = 0; // Sleep Motor
 }
 
 int StepFinished(){
@@ -75,6 +74,7 @@ void TurnRobot(double angle, char direction, int speed, int step_size){
 
 int DriveRobot(double distance, char direction, int speed, int step_size) {
     static int drivestate = 0;
+    static int holdtime = 0;
     switch (drivestate){
         case 0: //Start
             step = 0;
@@ -94,12 +94,17 @@ int DriveRobot(double distance, char direction, int speed, int step_size) {
             break;
         case 1: //Driving
             if (StepFinished()){ // Finished
-                drivestate = 0;
-                return 1;
+                drivestate = 2;
+                holdtime = gtime;
             }          
             break;
-<<<<<<< HEAD
-=======
+        case 2: //Holding
+            if (gtime-holdtime > 500){
+                drivestate = 0;
+                _LATB0 = 0; // Sleep Motor
+                return 1;
+            }
+            
     }
     return 0;
 }
@@ -159,7 +164,6 @@ int RampRobot(double distance, char direction, int speed, int step_size) {
             }
             break;
             
->>>>>>> RampDrive
     }
     return 0;
 }
@@ -210,6 +214,28 @@ int Solenoid(double timeON, double timeOFF, int repeat){
             SolState = 0;
             repeat_count = 1;
             return 1;
+    }
+    return 0;
+}
+
+int Launch(){
+    static int stime = 0;
+    static  launchstate = 0;
+    
+    switch (launchstate){
+        case 0:
+            stime = gtime;
+            _LATB1 = 1; // Turn on Motor
+            launchstate = 1;
+            break;
+        case 1:
+            if (gtime-stime > 3000){
+                _LATB1 = 0; // Turn off motor
+                launchstate = 0;
+                stime = 0;
+                return 1;
+            }
+            
     }
     return 0;
 }
@@ -267,8 +293,13 @@ int main () {
                 else {
                 }
                 break;
+            case launch:
+                if (Launch()){
+                    state = test;
+                }
+                break;
             case tocenter:
-                if (DriveRobot(200,'F',1,1)){
+                if (DriveRobot(670,'B',4,8)){ //670
                     state = test;
                 }
                 break;
