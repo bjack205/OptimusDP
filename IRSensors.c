@@ -9,12 +9,11 @@ void config_IR() {
     _TRISB2 = 1;    // Right IR - > ADC1BUF4
     
     
-    // turns pins to digital
+    // turns pins to analog
     _ANSA0 = 1;
     _ANSA1 = 1;
     _ANSB2 = 1;
     
     
 }
-
 
