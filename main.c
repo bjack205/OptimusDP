@@ -1,7 +1,8 @@
 
-#include"Header.h"
-#include"Steppers.h"
-#include"Config.h"
+#include "Header.h"
+#include "Steppers.h"
+#include "Config.h"
+#include "IRSensors.h"
 
 _FOSCSEL(FNOSC_FRC) // 8 MHz Declare oscillator
 _FICD(ICS_PGx1) //Set Debug Pins
@@ -11,9 +12,10 @@ _FOSC(OSCIOFNC_OFF)//Turn off Secondary oscillator
 int gtime = 0;
 int step = 0;
 int step_target = 0;
-typedef enum{test, start, tocenter, forward, turning, end, reload, launch} statedef;
+typedef enum{test, start, tocenter, forward, turning, end, reload, launch, findgoal} statedef;
 statedef state = start;
 int start_button = 0;
+int goal = -1;
 
 void __attribute__((interrupt, no_auto_psv)) _OC1Interrupt(void){
     _OC1IF = 0;
@@ -58,6 +60,7 @@ int StepFinished(){
 
 int TurnRobot(double angle, char direction, int speed, int step_size){
     static int turnstate = 0;
+    static int turntime = 0;
     switch (turnstate) {
         case 0:
             step = 0;
@@ -77,12 +80,18 @@ int TurnRobot(double angle, char direction, int speed, int step_size){
             
             turnstate = 1;
             break;
-        case 1:
-            if (StepFinished()) {
+        case 1: //Turning
+            if (StepFinished()){ // Finished
+                turnstate = 2;
+                turntime = gtime;
+            }          
+            break;
+        case 2: //Holding
+            if (gtime-turntime > 500){
                 turnstate = 0;
+                _LATB0 = 0; // Sleep Motor
                 return 1;
             }
-            break;
     }
     return 0;
 }
@@ -258,9 +267,9 @@ int Launch(){
 int ReadIR() {
     static char IRState = 'H'; // H = Home, S = Search for IR, F = Found IR and hone in
     float IRThreshold = 1.0;
-    float VoltageFront = (ADC1BUF0 / 4095) * 3.3;
-    float VoltageLeft = (ADC1BUF1 / 4095) * 3.3;
-    float VoltageRight = (ADC1BUF4 / 4095) * 3.3;
+    float VoltageFront = 0; //(ADC1BUF0 / 4095.0) * 3.3;
+    float VoltageLeft = (ADC1BUF1 / 4095.0) * 3.3;
+    float VoltageRight = (ADC1BUF4 / 4095.0) * 3.3;
     
 //    switch (IRState) {
 //        case 'H':
@@ -289,18 +298,12 @@ int ReadIR() {
     // Left IR
     if (VoltageLeft >= IRThreshold) {
         // turn toward LED
-        if (TurnRobot(90, 'L', 1, 1)) {
-            state = test;
-        }
         return 1;
     }
     
     // Right IR
     if (VoltageRight >= IRThreshold) {
         //turn toward LED
-        if (TurnRobot(90, 'R', 1, 1)) {
-            state = test;
-        }
         return 2;
     }
     
@@ -309,7 +312,10 @@ int ReadIR() {
 
 
 int main () {
-    
+    TMR1_Config();
+    config_ad();
+    config_IR();
+    config_step1();
     
     _ANSA0 = 0; // Set up AN0 (Pin 2) as digital
     _TRISA0 = 0; // Set up Pin 2 as output
@@ -326,11 +332,12 @@ int main () {
     _ANSB15 = 0; // Set Pin 18 as digital
     _TRISB15 = 1; // Set Pin 18 as input
     
+    _TRISB8 = 0;
+    
     
     int counter = 0;
     
-    TMR1_Config();
-    config_step1();
+    
     state = test;
     
     int speed = 3;
@@ -351,6 +358,10 @@ int main () {
     
     _LATA0 = 0;
     _LATA1 = 0;
+    
+    _LATA0 = 1;
+    _LATB1 = 1;
+    _LATB8 = 1;
     while(1) {
         switch (state) {
             case test:
@@ -358,6 +369,32 @@ int main () {
                     state = tocenter;
                 }
                 else {
+                    
+                }
+                break;
+            case findgoal:
+                switch (goal){
+                    case -1: //Forward
+                        state = test;
+                        break;
+                    case 1: //Left Goal
+                        if (TurnRobot(90, 'L', 1, 1)) {
+                            state = test;
+                        }
+                        break;
+                    case 2: //Right Goal
+                        if (TurnRobot(90, 'R', 1, 1)) {
+                            state = test;
+                        }
+                        break;
+                    default:
+                        state = test;
+                }
+                if (goal == 0){ //Forward
+                    state = test;
+                }
+                if (goal == 1) {
+                    
                 }
                 break;
             case launch:
@@ -366,8 +403,9 @@ int main () {
                 }
                 break;
             case tocenter:
-                if (DriveRobot(670,'B',4,8)){ //670
-                    state = test;
+                if (DriveRobot(670,'F',1,8)){ //670
+                    goal = ReadIR();
+                    state = findgoal;
                 }
                 break;
             case reload:
@@ -393,7 +431,7 @@ int main () {
                     }
                     else {
                         state = turning;
-                        TurnRobot(90, 'R', speed, 1);
+                        TurnRobot(90, 'F', speed, 1);
                     }
                 }
                 break;
