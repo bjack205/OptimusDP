@@ -26,7 +26,7 @@ void config_ad(void)
                   // ref voltage
     _BUFREGEN = 1; // Result appears in buffer location for channel
     _CSCNA = 1;   // Scan Inputs
-    _SMPI = 1;    // Sample every other
+    _SMPI = 2;    // Sample every other
     _ALTS = 0;    // AD1CON2<0> -- Sample MUXA only
     
     // AD1CON3 register
@@ -39,10 +39,13 @@ void config_ad(void)
     //AD1CSSL = 1;  
     _CSS0 = 1;
     _CSS1 = 1;
+    _CSS4 = 1;
+    
 
     //Turn on AD
     _ADON = 1;    // AD1CON1<15> -- Turn on A/D
 }
+
 
 
 #ifdef	__cplusplus
