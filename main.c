@@ -468,22 +468,54 @@ int main () {
     _LATA1 = 0;
     
     _LATA0 = 1;
-    _LATB1 = 1;
+    //_LATB1 = 1;
     _LATB8 = 1;
+    
     while(1) {
         switch (state) {
             case test:
                 if (Start_Check()){
-                    state = Reorient;
+                    orientation = forward;
+                    state = reload;
                 }
                 else {
                     
                 }
                 break;
-            case Reorient:
-                if (RampTurn(90,'L',8)){
+            case test2:
+                if (RampTurn(-90,'R',8)){
                     state = test;
                 }
+                break;
+            case Reorient:
+                switch (orientation){
+                    case forward:
+                        if (RampTurn(-5,'R',8))
+                            done = 1;
+                        break;
+                    case left:
+                        if (RampTurn(90,'R',8))
+                            done = 1;
+                        break;
+                    case right:
+                        if (RampTurn(90,'L',8))
+                            done = 1;
+                        break;
+                    case backwards:
+                        if (RampTurn(180,'L',8)){
+                            done = 1;
+                        }
+                        break;
+                    default:
+                        done = 1;
+                        break;
+                }
+                if (done){
+                    orientation = forward;
+                    state = test;
+                    done = 0;
+                }
+                
                 break;
             case tohome:
                 if (RampDrive(550,'B',8)){
@@ -493,26 +525,28 @@ int main () {
             case findgoal:
                 switch (goal){
                     case -1: //Forward
-                        state = test;
+                        if (~done){
+                            done = TurnRobot(5,'L',1,8);
+                        }
+                        else{
+                            if (RampTurn(0,'R',8)){
+                                state = test;
+                                done = 0;
+                            }
+                        }
                         break;
                     case 1: //Left Goal
-                        if (TurnRobot(90, 'L', 1, 1)) {
+                        if (RampTurn(90,'L',8)) {
                             state = test;
                         }
                         break;
                     case 2: //Right Goal
-                        if (TurnRobot(90, 'R', 1, 1)) {
+                        if (RampTurn(90,'R',8)) {
                             state = test;
                         }
                         break;
                     default:
                         state = test;
-                }
-                if (goal == 0){ //Forward
-                    state = test;
-                }
-                if (goal == 1) {
-                    
                 }
                 break;
             case launch:
@@ -539,27 +573,6 @@ int main () {
                    // TurnRobot(90, 'R', 2, 1);
                     DriveRobot(200, 'F', speed, 1);
                 }
-                break;
-            case forward:
-                if (StepFinished()) {
-                    counter++;
-                    if (counter == 2) {
-                        state = start;
-                    }
-                    else {
-                        state = turning;
-                        TurnRobot(90, 'F', speed, 1);
-                    }
-                }
-                break;
-            case turning:
-                if (StepFinished()) {
-                    state = forward;
-                    DriveRobot(200, 'F', speed, 1);
-                }
-                break;
-            case end:
-               // if (step >= )
                 break;
             default:
                 state = start;
