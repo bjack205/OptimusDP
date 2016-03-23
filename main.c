@@ -338,11 +338,11 @@ int Solenoid(double timeON, double timeOFF, int repeat){
         case 0: //New
             startTime = gtime;
             SolState = 1;
-            _LATB1 = 1;
+            _LATB4 = 1;
             break;
         case 1: // Activated
             if (gtime - startTime > timeON){ //On time finished
-                _LATB1 = 0; // Turn off
+                _LATB4 = 0; // Turn off
                 SolState = 2;
             }
             break;
@@ -429,9 +429,9 @@ int main () {
     _ANSB14 = 0; // Set up pin 17 as digital
     _TRISB14 = 1; // Set up pin 17 as input for push button start
     
-    //Configure LAUNCH Pin on Pin 5
-    _ANSB1 = 0; // Set Pin 5 as digital
-    _TRISB1 = 0; // Set up Pin 5 as output
+    //Configure LAUNCH Pin on Pin 9
+    _ANSB4 = 0; // Set Pin 9 as digital
+    _TRISB4 = 0; // Set up Pin 9 as output
     
     //Configure Left Button on Pin 18
     _ANSB15 = 0; // Set Pin 18 as digital
@@ -524,8 +524,7 @@ int main () {
                 }
                 break;
             case reload:
-                if(Solenoid(50,500,6)){
-                    StepperStop();
+                if(Solenoid(25,100,6)){
                     state = test;
                 }
                 break;
