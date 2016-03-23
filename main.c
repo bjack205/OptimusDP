@@ -12,10 +12,15 @@ _FOSC(OSCIOFNC_OFF)//Turn off Secondary oscillator
 int gtime = 0;
 int step = 0;
 int step_target = 0;
-typedef enum{test, test2, start, tohome, tocenter, forward, turning, end, reload, launch, findgoal} statedef;
-statedef state = start;
 int start_button = 0;
-int goal = -1;
+
+//State Variables
+typedef enum{start, FindHome, Reorient, test, test2, tohome, tocenter, forward, turning, end, reload, launch, findgoal} statedef;
+statedef state = start;
+int goal = -1; //Active Goal
+int orientation = -1; //Where front is pointing: 1=forward, 2=left, 3=right, 4=backwards
+
+
 
 void __attribute__((interrupt, no_auto_psv)) _OC1Interrupt(void){
     _OC1IF = 0;
@@ -133,7 +138,92 @@ int DriveRobot(double distance, char direction, int speed, int step_size) {
     return 0;
 }
 
-int RampRobot(double distance, char direction, int step_size) {
+int RampTurn(double angle, char direction, int step_size) {
+    static int turnstate = 0;
+    static double ramp_speed = 20;
+    static int ramp_time = 0;
+    int ramp_rate = 2;
+    int delay = 2;
+    int speed = 300;
+    int crashspeed = 50;
+    
+    switch (turnstate){
+        case 0: //Start
+            step = 0;
+            TMR2 = 0;
+            
+            //Validate step size input
+            if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
+                step_size = 1; //default to whole step
+
+            angle = angle * PI / 180.0; //convert to radians
+            step_target = R_base * angle*step_size; // calculate number of steps
+            ramp_time = gtime;
+            
+            turnstate = 1;
+            break;
+        case 1: //Ramp up Speed
+            if (ramp_speed < speed) {
+                if (gtime-ramp_time > delay){
+                    ramp_speed += ramp_rate;
+                    ramp_time = gtime;
+                    
+                    stepper_out_ramp(step_size, direction, ramp_speed);
+                }
+            }
+            else {
+                stepper_out_ramp(step_size, direction, speed);
+                turnstate = 2;
+            }
+            break;
+        case 2: // Max Speed
+            if (step > step_target-40*step_size){
+                if (state == tohome)
+                    turnstate = 5;
+                else
+                    turnstate = 3;
+            }
+            break;
+        case 3: // Ramp down to stop
+            if (StepFinished()){ // Stop
+                ramp_time = gtime;
+                turnstate = 4;
+            }    
+            else { 
+                if (gtime-ramp_time > delay && ramp_speed > 30) {
+                    ramp_speed -= ramp_rate+1;
+                    ramp_time = gtime;
+                    stepper_out_ramp(step_size, direction, ramp_speed);
+                }
+            }
+            break;
+        case 4: //Hold
+            if (gtime-ramp_time > 200){
+                turnstate = 0;
+                ramp_time = 0;
+                ramp_speed = 20;
+                _LATB0 = 0; // Sleep Motor
+                return 1;
+            }
+            break;
+        case 5: //Run into wall
+            if (gtime-ramp_time > delay && ramp_speed > crashspeed){
+                    ramp_speed -= ramp_rate+1;
+                    ramp_time = gtime;
+                    stepper_out_ramp(step_size, direction, ramp_speed);
+            }
+            if (WallContact()){
+                turnstate = 4;
+            }
+            if (step > step_target + 500*step_size){ // Failsafe
+                turnstate = 4;
+            }    
+            break;
+    }
+    return 0;
+}
+
+int RampDrive(double distance, char direction, int step_size) {
     static int drivestate = 0;
     static double ramp_speed = 20;
     static int ramp_time = 0;
@@ -380,14 +470,19 @@ int main () {
         switch (state) {
             case test:
                 if (Start_Check()){
-                    state = tohome;
+                    state = Reorient;
                 }
                 else {
                     
                 }
                 break;
+            case Reorient:
+                if (RampTurn(90,'L',8)){
+                    state = test;
+                }
+                break;
             case tohome:
-                if (RampRobot(550,'B',8)){
+                if (RampDrive(550,'B',8)){
                     state = test;
                 }
                 break;

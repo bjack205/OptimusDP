@@ -153,24 +153,24 @@ void stepper_out_ramp(int stepsize, char direction, int freq)
     int LDIR, RDIR;
     switch (direction) {
         case 'L': //Left
-            LDIR = 1;
-            RDIR = 0;
+            LDIR = 0;
+            RDIR = 1;
             break;
         case 'R': //Right
-            LDIR = 0;
-            RDIR = 1;
-            break;
-        case 'F': //Forward
-            LDIR = 0;
+            LDIR = 1;
             RDIR = 0;
             break;
-        case 'B': //Backward
+        case 'F': //Forward
             LDIR = 1;
             RDIR = 1;
             break;
-        default: //Forward
+        case 'B': //Backward
             LDIR = 0;
             RDIR = 0;
+            break;
+        default: //Forward
+            LDIR = 1;
+            RDIR = 1;
     }
     _LATB12 = LDIR;
     _LATB13 = RDIR;
