@@ -4,9 +4,9 @@
 #include "Config.h"
 #include "IRSensors.h"
 
-_FOSCSEL(FNOSC_FRC) // 8 MHz Declare oscillator
+_FOSCSEL(FNOSC_FRC & SOSCSRC_DIG) // 8 MHz Declare oscillator and Turn off Secondary oscillator on Pins 9 and 10
 _FICD(ICS_PGx1) //Set Debug Pins
-_FOSC(OSCIOFNC_OFF)//Turn off Secondary oscillator
+_FOSC(OSCIOFNC_OFF)//Turn off CLK output on Pin 8
         
 // Global Variables
 int gtime = 0;
