@@ -12,7 +12,7 @@ _FOSC(OSCIOFNC_OFF)//Turn off Secondary oscillator
 int gtime = 0;
 int step = 0;
 int step_target = 0;
-typedef enum{test, start, tocenter, forward, turning, end, reload, launch, findgoal} statedef;
+typedef enum{test, test2, start, tohome, tocenter, forward, turning, end, reload, launch, findgoal} statedef;
 statedef state = start;
 int start_button = 0;
 int goal = -1;
@@ -133,12 +133,14 @@ int DriveRobot(double distance, char direction, int speed, int step_size) {
     return 0;
 }
 
-int RampRobot(double distance, char direction, int speed, int step_size) {
+int RampRobot(double distance, char direction, int step_size) {
     static int drivestate = 0;
     static double ramp_speed = 20;
     static int ramp_time = 0;
     int ramp_rate = 2;
     int delay = 2;
+    int speed = 300;
+    int crashspeed = 50;
     
     switch (drivestate){
         case 0: //Start
@@ -168,27 +170,57 @@ int RampRobot(double distance, char direction, int speed, int step_size) {
             }
             break;
         case 2: // Max Speed
-            if (step > step_target*3.0/4.0){
-                drivestate = 3;
+            if (step > step_target-40*step_size){
+                if (state == tohome)
+                    drivestate = 5;
+                else
+                    drivestate = 3;
             }
             break;
         case 3: // Ramp down to stop
             if (StepFinished()){ // Stop
-                drivestate = 0;
-                ramp_time = 0;
-                ramp_speed = 20;
-                return 1;
+                ramp_time = gtime;
+                drivestate = 4;
             }    
             else { 
-                if (gtime-ramp_time > delay && ramp_speed > 20) {
-                    ramp_speed -= ramp_rate;
+                if (gtime-ramp_time > delay && ramp_speed > 30) {
+                    ramp_speed -= ramp_rate+1;
                     ramp_time = gtime;
                     stepper_out_ramp(step_size, direction, ramp_speed);
                 }
             }
             break;
-            
+        case 4: //Hold
+            if (gtime-ramp_time > 200){
+                drivestate = 0;
+                ramp_time = 0;
+                ramp_speed = 20;
+                _LATB0 = 0; // Sleep Motor
+                return 1;
+            }
+            break;
+        case 5: //Run into wall
+            if (gtime-ramp_time > delay && ramp_speed > crashspeed){
+                    ramp_speed -= ramp_rate+1;
+                    ramp_time = gtime;
+                    stepper_out_ramp(step_size, direction, ramp_speed);
+            }
+            if (WallContact()){
+                drivestate = 4;
+            }
+            if (step > step_target + 500*step_size){ // Failsafe
+                drivestate = 4;
+            }    
+            break;
     }
+    return 0;
+}
+
+int WallContact(){
+    int LBump = _RB15;
+    int RBump = _RB14;
+    if (LBump && RBump) //Both buttons pressed
+        return 1;
     return 0;
 }
 
@@ -271,24 +303,6 @@ int ReadIR() {
     float VoltageLeft = (ADC1BUF1 / 4095.0) * 3.3;
     float VoltageRight = (ADC1BUF4 / 4095.0) * 3.3;
     
-//    switch (IRState) {
-//        case 'H':
-//            TurnRobot(180, 'L', 1, 1);
-//            if (VoltageLeft >= IRThreshold) {
-//                TurnRobot(90, 'R', 1, 1);
-//            }
-//            else if (VoltageRight >= IRThreshold) {
-//                TurnRobot(90, 'L', 1, 1);
-//            }
-//            else {
-//                
-//            }
-//        case 'S':
-//        case 'F':
-//        default:
-//            
-//    }
-    
     // Front IR
     if (VoltageFront >= IRThreshold) {
         // Don't turn
@@ -366,10 +380,15 @@ int main () {
         switch (state) {
             case test:
                 if (Start_Check()){
-                    state = tocenter;
+                    state = tohome;
                 }
                 else {
                     
+                }
+                break;
+            case tohome:
+                if (RampRobot(550,'B',8)){
+                    state = test;
                 }
                 break;
             case findgoal:
