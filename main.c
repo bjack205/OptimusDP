@@ -224,6 +224,14 @@ int RampTurn(double angle, char direction, int step_size) {
     return 0;
 }
 
+int WallContact(){
+    int LBump = _RB15;
+    int RBump = _RB14;
+    if (LBump && RBump) //Both buttons pressed
+        return 1;
+    return 0;
+}
+
 int RampDrive(double distance, char direction, int step_size) {
     static int drivestate = 0;
     static double ramp_speed = 20;
@@ -307,14 +315,6 @@ int RampDrive(double distance, char direction, int step_size) {
     return 0;
 }
 
-int WallContact(){
-    int LBump = _RB15;
-    int RBump = _RB14;
-    if (LBump && RBump) //Both buttons pressed
-        return 1;
-    return 0;
-}
-
 int Start_Check() {
     int value = 0;
     if (_RB14 == 1) {
@@ -367,7 +367,7 @@ int Solenoid(double timeON, double timeOFF, int repeat){
 
 int Launch(){
     static int stime = 0;
-    static  launchstate = 0;
+    static int launchstate = 0;
     
     switch (launchstate){
         case 0:
@@ -375,20 +375,23 @@ int Launch(){
             _LATB1 = 1; // Turn on Motor
             launchstate = 1;
             break;
-        case 1:
-            if (gtime-stime > 3000){
+        case 1: //Release balls
+            if (Solenoid(50,100,6)){
+                launchstate = 2;
+            }
+            break;
+        case 2: //Turn off motor
                 _LATB1 = 0; // Turn off motor
                 launchstate = 0;
                 stime = 0;
                 return 1;
-            }
             
     }
     return 0;
 }
 
 int ReadIR() {
-    static char IRState = 'H'; // H = Home, S = Search for IR, F = Found IR and hone in
+    //static char IRState = 'H'; // H = Home, S = Search for IR, F = Found IR and hone in
     float IRThreshold = 1.0;
     float VoltageFront = 0; //(ADC1BUF0 / 4095.0) * 3.3;
     float VoltageLeft = (ADC1BUF1 / 4095.0) * 3.3;
@@ -441,10 +444,10 @@ int main () {
     
     
     int counter = 0;
+    int done = 0;
     
     
     state = test;
-    
     int speed = 3;
     
     
