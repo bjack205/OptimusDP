@@ -15,10 +15,11 @@ int step_target = 0;
 int start_button = 0;
 
 //State Variables
-typedef enum{start, FindHome, Reorient, test, test2, tohome, tocenter, forward, turning, end, reload, launch, findgoal} statedef;
+typedef enum{start, FindHome, Reorient, tohome, reload, tocenter, findgoal, launch,  test, test2} statedef;
 statedef state = start;
 int goal = -1; //Active Goal
-int orientation = -1; //Where front is pointing: 1=forward, 2=left, 3=right, 4=backwards
+typedef enum{forward,left,right,backwards,none} orientdef;
+orientdef orientation = none; //Where front is pointing: 1=forward, 2=left, 3=right, 4=backwards
 
 
 
