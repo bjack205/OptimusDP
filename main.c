@@ -141,12 +141,14 @@ int DriveRobot(double distance, char direction, int speed, int step_size) {
 
 int RampTurn(double angle, char direction, int step_size) {
     static int turnstate = 0;
-    static double ramp_speed = 20;
+    static double ramp_speed = 50;
     static int ramp_time = 0;
     int ramp_rate = 2;
     int delay = 2;
     int speed = 300;
-    int crashspeed = 50;
+    int creepspeed = 50;
+    int creepstep = 16; //Use finest step size
+    static char creepdir = 'R';
     
     switch (turnstate){
         case 0: //Start
@@ -156,12 +158,22 @@ int RampTurn(double angle, char direction, int step_size) {
             //Validate step size input
             if (step_size != 1 && step_size != 2 && step_size != 8 && step_size != 16)
                 step_size = 1; //default to whole step
+            
+            creepdir = direction;
+            if (angle < 0){
+                angle = -angle;
+                if (direction == 'R') //Reverse Creep Direction
+                    creepdir = 'L';
+                else
+                    creepdir = 'R';
+            }
 
             angle = angle * PI / 180.0; //convert to radians
             step_target = R_base * angle*step_size; // calculate number of steps
             ramp_time = gtime;
             
             turnstate = 1;
+            stepper_out_ramp(step_size, direction, ramp_speed);
             break;
         case 1: //Ramp up Speed
             if (ramp_speed < speed) {
@@ -172,23 +184,27 @@ int RampTurn(double angle, char direction, int step_size) {
                     stepper_out_ramp(step_size, direction, ramp_speed);
                 }
             }
-            else {
+            else { // Write out max speed
                 stepper_out_ramp(step_size, direction, speed);
+                turnstate = 2;
+            }
+            if (step > step_target-40*step_size){ //Check if reaching end of cycle
                 turnstate = 2;
             }
             break;
         case 2: // Max Speed
             if (step > step_target-40*step_size){
-                if (state == tohome)
-                    turnstate = 5;
-                else
-                    turnstate = 3;
+                turnstate = 3;
             }
             break;
         case 3: // Ramp down to stop
             if (StepFinished()){ // Stop
                 ramp_time = gtime;
                 turnstate = 4;
+                if (state == test2){ // Enable Creep
+                    turnstate = 5;
+                    stepper_out_ramp(creepstep, creepdir, creepspeed);
+                }
             }    
             else { 
                 if (gtime-ramp_time > delay && ramp_speed > 30) {
@@ -207,18 +223,12 @@ int RampTurn(double angle, char direction, int step_size) {
                 return 1;
             }
             break;
-        case 5: //Run into wall
-            if (gtime-ramp_time > delay && ramp_speed > crashspeed){
-                    ramp_speed -= ramp_rate+1;
-                    ramp_time = gtime;
-                    stepper_out_ramp(step_size, direction, ramp_speed);
-            }
-            if (WallContact()){
+        case 5: //Creeping
+            // If IR is interrupted (Do in interrupt?)
+            
+            if (step > step_target + 200*creepstep){ // Failsafe
                 turnstate = 4;
             }
-            if (step > step_target + 500*step_size){ // Failsafe
-                turnstate = 4;
-            }    
             break;
     }
     return 0;
@@ -280,6 +290,10 @@ int RampDrive(double distance, char direction, int step_size) {
             if (StepFinished()){ // Stop
                 ramp_time = gtime;
                 drivestate = 4;
+                if (state == test2){
+                    drivestate = 6;
+                    stepper_out_ramp(step_size, direction, crashspeed);
+                }
             }    
             else { 
                 if (gtime-ramp_time > delay && ramp_speed > 30) {
@@ -311,6 +325,13 @@ int RampDrive(double distance, char direction, int step_size) {
                 drivestate = 4;
             }    
             break;
+        case 6:
+            if (WallContact()){
+                drivestate = 4;
+            }
+            if (step > step_target + 200*step_size){ // Failsafe
+                drivestate = 4;
+            }    
     }
     return 0;
 }
@@ -476,22 +497,21 @@ int main () {
             case test:
                 if (Start_Check()){
                     orientation = forward;
-                    state = reload;
+                    state = test2;
                 }
                 else {
                     
                 }
                 break;
             case test2:
-                if (RampTurn(-90,'R',8)){
+                if (RampDrive(300,'F',8)){
                     state = test;
                 }
                 break;
             case Reorient:
                 switch (orientation){
                     case forward:
-                        if (RampTurn(-5,'R',8))
-                            done = 1;
+                        done = 1;
                         break;
                     case left:
                         if (RampTurn(90,'R',8))
@@ -525,14 +545,8 @@ int main () {
             case findgoal:
                 switch (goal){
                     case -1: //Forward
-                        if (~done){
-                            done = TurnRobot(5,'L',1,8);
-                        }
-                        else{
-                            if (RampTurn(0,'R',8)){
-                                state = test;
-                                done = 0;
-                            }
+                        if (RampTurn(-15,'R',8)) { //Turn Right and then hone left
+                            state = test;
                         }
                         break;
                     case 1: //Left Goal
@@ -555,7 +569,7 @@ int main () {
                 }
                 break;
             case tocenter:
-                if (DriveRobot(670,'F',1,8)){ //670
+                if (RampDrive(670,'B',8)){ //670
                     goal = ReadIR();
                     state = findgoal;
                 }
