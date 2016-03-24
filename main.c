@@ -439,6 +439,32 @@ int ReadIR() {
     return -1;
 }
 
+int HoneIR(int Goal_Selection) {
+    float VoltageFront = (ADC1BUF0 / 4095.0) * 3.3;
+    float IRThreshold = 1.0;
+    switch (Goal_Selection) {
+        case 1: //Left
+            if (VoltageFront >= IRThreshold) {
+                return 1;
+            }
+            RampTurn(2,'L',16);
+            break;
+        case 2: // Right
+            if (VoltageFront >= IRThreshold) {
+                return 1;
+            }
+            RampTurn(2,'R',16);
+            break;
+        default:
+            if (VoltageFront >= IRThreshold) {
+                return 1;
+            }
+            return 0;
+            
+    }
+    
+}
+
 
 int main () {
     TMR1_Config();
@@ -550,12 +576,14 @@ int main () {
                         }
                         break;
                     case 1: //Left Goal
-                        if (RampTurn(90,'L',8)) {
+                        if (RampTurn(85,'L',8)) {
+                            HoneIR(goal);
                             state = test;
                         }
                         break;
                     case 2: //Right Goal
                         if (RampTurn(90,'R',8)) {
+                            HoneIR(goal);
                             state = test;
                         }
                         break;
