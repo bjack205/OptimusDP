@@ -226,6 +226,13 @@ int RampTurn(double angle, char direction, int step_size) {
         case 5: //Creeping
             // If IR is interrupted (Do in interrupt?)
             
+            // My only thought with the interrupt is that unless we don't have the timer 
+            // running until we are running some sort of honing function, and the IR
+            // picks up the LED sometime during our driving, the robot might start running
+            // whatever code we set up in the interrupt prematurely. I think the function I wrote
+            // for HoneIR should work to find the goal without an interrupt and begin
+            // launching after it's found.
+            
             if (step > step_target + 200*creepstep){ // Failsafe
                 turnstate = 4;
             }
@@ -459,10 +466,9 @@ int HoneIR(int Goal_Selection) {
             if (VoltageFront >= IRThreshold) {
                 return 1;
             }
-            return 0;
-            
+            break;
     }
-    
+    return 0;
 }
 
 
@@ -577,14 +583,20 @@ int main () {
                         break;
                     case 1: //Left Goal
                         if (RampTurn(85,'L',8)) {
-                            HoneIR(goal);
-                            state = test;
+                            if (HoneIR(goal)) {
+                                // state = test;
+                                state = launch;
+                                orientation = left;
+                            }
                         }
                         break;
                     case 2: //Right Goal
-                        if (RampTurn(90,'R',8)) {
-                            HoneIR(goal);
-                            state = test;
+                        if (RampTurn(85,'R',8)) {
+                            if (HoneIR(goal)) {
+                                // state = test;
+                                state = launch;
+                                orientation = right;
+                            }
                         }
                         break;
                     default:
