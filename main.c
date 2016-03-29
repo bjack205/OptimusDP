@@ -15,7 +15,7 @@ int step_target = 0;
 int start_button = 0;
 
 //State Variables
-typedef enum{start, FindHome, Reorient, tohome, reload, tocenter, findgoal, launch,  test, test2} statedef;
+typedef enum{start,fliparound, FindHome, Reorient, tohome, reload, tocenter, findgoal, launch,  test, test2} statedef;
 statedef state = start;
 int goal = -1; //Active Goal
 typedef enum{forward,left,right,backwards,none} orientdef;
@@ -280,9 +280,6 @@ int RampDrive(double distance, char direction, int step_size) {
             break;
         case 2: // Max Speed
             if (step > step_target-40*step_size){
-                if (state == tohome)
-                    drivestate = 5;
-                else
                     drivestate = 3;
             }
             break;
@@ -290,8 +287,8 @@ int RampDrive(double distance, char direction, int step_size) {
             if (StepFinished()){ // Stop
                 ramp_time = gtime;
                 drivestate = 4;
-                if (state == test2){
-                    drivestate = 6;
+                if (state == tohome){
+                    drivestate = 5;
                     stepper_out_ramp(step_size, direction, crashspeed);
                 }
             }    
@@ -308,30 +305,20 @@ int RampDrive(double distance, char direction, int step_size) {
                 drivestate = 0;
                 ramp_time = 0;
                 ramp_speed = 20;
-                _LATB0 = 0; // Sleep Motor
+                StepperStop();
+                if (state != tohome)
+                    _LATB0 = 0; // Sleep Motor
                 return 1;
             }
             break;
-        case 5: //Run into wall
-            if (gtime-ramp_time > delay && ramp_speed > crashspeed){
-                    ramp_speed -= ramp_rate+1;
-                    ramp_time = gtime;
-                    stepper_out_ramp(step_size, direction, ramp_speed);
-            }
-            if (WallContact()){
-                drivestate = 4;
-            }
-            if (step > step_target + 500*step_size){ // Failsafe
-                drivestate = 4;
-            }    
-            break;
-        case 6:
+        case 5:
             if (WallContact()){
                 drivestate = 4;
             }
             if (step > step_target + 200*step_size){ // Failsafe
-                drivestate = 4;
-            }    
+                //drivestate = 4;
+            }
+            break;
     }
     return 0;
 }
@@ -439,19 +426,36 @@ int ReadIR() {
     return -1;
 }
 
+int LocateDispenser(){
+    static int locatestate = 0;
+    float VoltageFront;
+    switch (locatestate ){
+        case 0:
+            locatestate = 1;
+            break;
+        case 1: //Turn Robot
+            VoltageFront = ADC1BUF0 / 4095.0 *3.3;
+            if (VoltageFront > 1.5){
+                locatestate = 2;
+            }
+            break;
+        case 2:
+            StepperStop();
+            locatestate = 0;
+            return 1;
+    }
+    return 0;
+}
+
 
 int main () {
     TMR1_Config();
     config_ad();
     config_IR();
     config_step1();
+    PWM2_Config(8);
     
-    _ANSA0 = 0; // Set up AN0 (Pin 2) as digital
-    _TRISA0 = 0; // Set up Pin 2 as output
-    _ANSA1 = 0; // Set up AN1 (Pin 3) as digital
-    _TRISA1 = 0; // Set up Pin 3 as output
-    _ANSB14 = 0; // Set up pin 17 as digital
-    _TRISB14 = 1; // Set up pin 17 as input for push button start
+    _TRISA4 = 0;
     
     //Configure LAUNCH Pin on Pin 9
     _ANSB4 = 0; // Set Pin 9 as digital
@@ -460,6 +464,10 @@ int main () {
     //Configure Left Button on Pin 18
     _ANSB15 = 0; // Set Pin 18 as digital
     _TRISB15 = 1; // Set Pin 18 as input
+    
+    //Configure Right Button on Pin 17
+    _ANSB14 = 0;
+    _TRISB14 = 1;
     
     _TRISB8 = 0;
     
@@ -539,7 +547,7 @@ int main () {
                 break;
             case tohome:
                 if (RampDrive(550,'B',8)){
-                    state = test;
+                    state = reload;
                 }
                 break;
             case findgoal:
@@ -563,20 +571,38 @@ int main () {
                         state = test;
                 }
                 break;
+            case FindHome:
+                TurnRobot(360*2,'R',1,8);
+                VoltageFront = ADC1BUF0 /4095.0 *3.3;
+                if (VoltageFront > 1.2){
+                    StepperStop();
+                    _LATB0 = 1;
+                    state = fliparound;
+                }
+                else {
+                    //_LATB0 = 0;
+                }
+                break;
+            case fliparound:
+                if (RampTurn(200,'R',8)){
+                    state = tohome;
+                }
+                break;
             case launch:
                 if (Launch()){
                     state = test;
                 }
                 break;
             case tocenter:
-                if (RampDrive(670,'B',8)){ //670
+                if (RampDrive(670,'F',8)){ //670
                     goal = ReadIR();
                     state = findgoal;
                 }
                 break;
             case reload:
-                if(Solenoid(25,100,6)){
+                if(CollectBalls(175.0,135.0,3)){
                     state = test;
+                    //_LATB0 = 0; // Sleep Motor
                 }
                 break;
             case start:
