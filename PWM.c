@@ -168,3 +168,27 @@ void VOut2(double voltage) {
     double Tperiod = (Tpwm/(Tcy*PS)-1);
     PR3 = Tperiod;
 }
+
+void ServoControl(double angle) {
+    //Controls Servo on OC2 (Pin 4)
+    double Tmax = 2.5/1000.0;
+    double Tmin = 0.6/1000.0;
+    double Fpwm = 50; //Cycles per second, 30-50
+    int PS = 8; //Pre-scaling
+    
+    //Calculations
+    double Tcy = 1.0/Fcy; // Operating Period
+    double Tpwm = 1.0/Fpwm;
+    
+    double Ton = angle/180.0*(Tmax-Tmin)+Tmin; // Time of pulse
+    //double DC = Ton/Tpwm;
+    
+    //Write ON time
+    double Ton_ticks = Ton/(Tcy*PS); //(Tpwm/(Tcy*PS)-1)*DC;
+    OC2R = Ton_ticks;
+    
+    //Write PWM Period
+    double Tperiod = (Tpwm/(Tcy*PS)-1);
+    PR3 = Tperiod;
+    
+}

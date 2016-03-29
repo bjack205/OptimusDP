@@ -372,6 +372,44 @@ int Solenoid(double timeON, double timeOFF, int repeat){
     }
     return 0;
 }
+int CollectBalls(double angle1, double angle2, int num){
+    static int servostate = 0;
+    static int startTime = 0;
+    static int repeatCount = 1;
+    
+    int timeON = 500;
+    int timeOFF = 500;
+    switch (servostate){
+        case 0:
+            startTime = gtime;
+            servostate = 1;
+            ServoControl(angle1);//Initial Angle
+            break;
+        case 1:
+            if (gtime - startTime > timeON){ //On time finished
+                ServoControl(angle2); //Interrupt Angle
+                startTime = gtime; 
+                servostate = 2;
+            }
+            break;
+        case 2: //Interupting Beam
+            if (gtime - startTime > timeON + timeOFF) {
+                if (repeatCount >= num){
+                    servostate = 3; //Exit
+                }
+                else {
+                    servostate = 0; // Repeat
+                }
+                repeatCount++;
+            }
+            break;
+        case 3: // End
+            servostate = 0;
+            repeatCount = 1;
+            return 1;
+    }
+    return 0;     
+}
 
 int Launch(){
     static int stime = 0;
@@ -492,27 +530,24 @@ int main () {
         }
     }
     
-    
-    _LATA0 = 0;
-    _LATA1 = 0;
-    
-    _LATA0 = 1;
     //_LATB1 = 1;
-    _LATB8 = 1;
+    //_LATB8 = 1;
+    float VoltageFront = 0;
     
     while(1) {
         switch (state) {
             case test:
                 if (Start_Check()){
                     orientation = forward;
-                    state = test2;
+                    state = reload;
                 }
                 else {
                     
                 }
                 break;
             case test2:
-                if (RampDrive(300,'F',8)){
+                TurnRobot(100,'R',1,8);
+                if (0){
                     state = test;
                 }
                 break;
