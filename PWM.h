@@ -8,7 +8,6 @@ extern "C" {
 #include"Header.h"
     
 void TMR1_Config();
-void TMR3_Config(int PS);
 void PWM1_Config(int PS);       
 void PWM2_Config(int PS); 
 void PWM3_Config(int PS);
