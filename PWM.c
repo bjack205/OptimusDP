@@ -12,15 +12,31 @@ void TMR1_Config(){
     _TON = 1; //Turn timer on
 }
 
-
-void PWM1_Config(int PS){
-    //Set up PWM on OC1 (Pin 14) with Timer 2
-    
+void TMR2_And_TMR3_Config(int PS) {
     //Configure Timer 2
     T2CONbits.TON = 0; // Turn off Timer 2
     T2CONbits.TCKPS = PS_bit(PS); //8 pre-scaling
     T2CONbits.TCS = 0; // Select Internal Osc
+    T2CONbits.TGATE = 0;
     T2CONbits.T32 = 0; //16 bit timer
+    
+    //Configure Timer 3
+    T3CONbits.TON = 0;
+    T3CONbits.TCKPS = PS_bit(PS);
+    T3CONbits.TCS = 0;
+    T3CONbits.TGATE = 0;
+    
+    //Enable Timer 3 interrupts
+    
+    _T3IP = 4;
+    _T3IE = 1;
+    _T3IF = 0;
+}
+
+void PWM1_Config(int PS){
+    //Set up PWM on OC1 (Pin 14) with Timer 2
+    
+    
     
     //Sets up Output Compare Module
     //OC1CON2bits.SYNCSEL = 0b01100; //Sync with Timer 2
@@ -114,16 +130,19 @@ void PWM_Out(double Freq, double DC, int PS, int Ch){
             OC1RS = Tperiod;
             PR2 = Tperiod;
             T2CONbits.TCKPS = PS_bit(PS);
+            break; // Added Breaks here... was fairly certain you meant to have them
         case 2:
             //TMR3 = 0;
             OC2R = Ton_ticks;
             PR3 = Tperiod;
             T3CONbits.TCKPS = PS_bit(PS);
+            break;
         case 3:
             //TMR4 = 0;
             OC3R = Ton_ticks;
             PR4 = Tperiod;
             T4CONbits.TCKPS = PS_bit(PS);
+            break;
     }
     
 }

@@ -8,9 +8,10 @@ extern "C" {
 #include"Header.h"
     
 void TMR1_Config();
-void PWM1_Config();       
-void PWM2_Config(); 
-void PWM3_Config();
+void TMR3_Config(int PS);
+void PWM1_Config(int PS);       
+void PWM2_Config(int PS); 
+void PWM3_Config(int PS);
 void PWM_Out(double Freq, double DC, int PS, int Ch);
 
 int PS_bit(int PS);

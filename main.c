@@ -41,13 +41,30 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt(void)
 
 void __attribute__((interrupt, no_auto_psv)) _T2Interrupt(void)
 {
-    // Clear Timer1 interrupt flag so that the program doesn't just jump
+    // Clear Timer2 interrupt flag so that the program doesn't just jump
     // back to this function when it returns to the while(1) loop.
     _T2IF = 0;
+    
+    if (ADC1BUF0 /4095.0 *3.3 > 1.2) {
+        StepperStop();
+        state = launch;
+    }
 
     // Increase step by 1 
 
     //step = step + 1;
+    
+}
+
+void __attribute__((interrupt, no_auto_psv)) _T3Interrupt(void)
+{
+    // Clear Timer3 interrupt flag so that the program doesn't just jump
+    // back to this function when it returns to the while(1) loop.
+    _T3IF = 0;
+    if (ADC1BUF0 /4095.0 *3.3 > 1.2) {
+        StepperStop();
+        state = launch;
+    }
     
 }
 
@@ -201,6 +218,7 @@ int RampTurn(double angle, char direction, int step_size) {
             if (StepFinished()){ // Stop
                 ramp_time = gtime;
                 turnstate = 4;
+                //if (state == findgoal){
                 if (state == test2){ // Enable Creep
                     turnstate = 5;
                     stepper_out_ramp(creepstep, creepdir, creepspeed);
@@ -220,11 +238,15 @@ int RampTurn(double angle, char direction, int step_size) {
                 ramp_time = 0;
                 ramp_speed = 20;
                 _LATB7 = 0; // Sleep Motor
+                T3CONbits.TON = 0;
                 return 1;
             }
             break;
         case 5: //Creeping
             // If IR is interrupted (Do in interrupt?)
+            
+            // TMR2 = 0;
+            T3CONbits.TON = 1;
             
             // My only thought with the interrupt is that unless we don't have the timer 
             // running until we are running some sort of honing function, and the IR
@@ -236,6 +258,10 @@ int RampTurn(double angle, char direction, int step_size) {
             if (step > step_target + 200*creepstep){ // Failsafe
                 turnstate = 4;
             }
+            if (state == launch) {
+                turnstate = 4;
+            }
+            
             break;
     }
     return 0;
@@ -471,30 +497,30 @@ int ReadIR() {
     return -1;
 }
 
-int HoneIR(int Goal_Selection) {
-    float VoltageFront = (ADC1BUF0 / 4095.0) * 3.3;
-    float IRThreshold = 1.0;
-    switch (Goal_Selection) {
-        case 1: //Left
-            if (VoltageFront >= IRThreshold) {
-                return 1;
-            }
-            RampTurn(2,'L',16);
-            break;
-        case 2: // Right
-            if (VoltageFront >= IRThreshold) {
-                return 1;
-            }
-            RampTurn(2,'R',16);
-            break;
-        default:
-            if (VoltageFront >= IRThreshold) {
-                return 1;
-            }
-            break;
-    }
-    return 0;
-}
+//int HoneIR(int Goal_Selection) {
+//    float VoltageFront = (ADC1BUF0 / 4095.0) * 3.3;
+//    float IRThreshold = 1.0;
+//    switch (Goal_Selection) {
+//        case 1: //Left
+//            if (VoltageFront >= IRThreshold) {
+//                return 1;
+//            }
+//            RampTurn(2,'L',16);
+//            break;
+//        case 2: // Right
+//            if (VoltageFront >= IRThreshold) {
+//                return 1;
+//            }
+//            RampTurn(2,'R',16);
+//            break;
+//        default:
+//            if (VoltageFront >= IRThreshold) {
+//                return 1;
+//            }
+//            break;
+//    }
+//    return 0;
+//}
 
 int LocateDispenser(){
     static int locatestate = 0;
@@ -611,24 +637,17 @@ int main () {
                     case -1: //Forward
                         if (RampTurn(-15,'R',8)) { //Turn Right and then hone left
                             state = test;
+                            orientation = forward;
                         }
                         break;
                     case 1: //Left Goal
                         if (RampTurn(85,'L',8)) {
-                            if (HoneIR(goal)) {
-                                // state = test;
-                                state = launch;
-                                orientation = left;
-                            }
+                            orientation = left;
                         }
                         break;
                     case 2: //Right Goal
                         if (RampTurn(85,'R',8)) {
-                            if (HoneIR(goal)) {
-                                // state = test;
-                                state = launch;
-                                orientation = right;
-                            }
+                            orientation = right;
                         }
                         break;
                     default:
@@ -655,6 +674,7 @@ int main () {
             case launch:
                 if (Launch()){
                     state = test;
+                    //state = FindHome;
                 }
                 break;
             case tocenter:
@@ -666,6 +686,7 @@ int main () {
             case reload:
                 if(CollectBalls(175.0,135.0,3)){
                     state = test;
+                    //state = tocenter;
                     //_LATB7 = 0; // Sleep Motor
                 }
                 break;
