@@ -226,6 +226,13 @@ int RampTurn(double angle, char direction, int step_size) {
         case 5: //Creeping
             // If IR is interrupted (Do in interrupt?)
             
+            // My only thought with the interrupt is that unless we don't have the timer 
+            // running until we are running some sort of honing function, and the IR
+            // picks up the LED sometime during our driving, the robot might start running
+            // whatever code we set up in the interrupt prematurely. I think the function I wrote
+            // for HoneIR should work to find the goal without an interrupt and begin
+            // launching after it's found.
+            
             if (step > step_target + 200*creepstep){ // Failsafe
                 turnstate = 4;
             }
@@ -317,7 +324,7 @@ int RampDrive(double distance, char direction, int step_size) {
             }
             if (step > step_target + 200*step_size){ // Failsafe
                 //drivestate = 4;
-            }
+            }    
             break;
     }
     return 0;
@@ -464,6 +471,31 @@ int ReadIR() {
     return -1;
 }
 
+int HoneIR(int Goal_Selection) {
+    float VoltageFront = (ADC1BUF0 / 4095.0) * 3.3;
+    float IRThreshold = 1.0;
+    switch (Goal_Selection) {
+        case 1: //Left
+            if (VoltageFront >= IRThreshold) {
+                return 1;
+            }
+            RampTurn(2,'L',16);
+            break;
+        case 2: // Right
+            if (VoltageFront >= IRThreshold) {
+                return 1;
+            }
+            RampTurn(2,'R',16);
+            break;
+        default:
+            if (VoltageFront >= IRThreshold) {
+                return 1;
+            }
+            break;
+    }
+    return 0;
+}
+
 int LocateDispenser(){
     static int locatestate = 0;
     float VoltageFront;
@@ -582,13 +614,21 @@ int main () {
                         }
                         break;
                     case 1: //Left Goal
-                        if (RampTurn(90,'L',8)) {
-                            state = test;
+                        if (RampTurn(85,'L',8)) {
+                            if (HoneIR(goal)) {
+                                // state = test;
+                                state = launch;
+                                orientation = left;
+                            }
                         }
                         break;
                     case 2: //Right Goal
-                        if (RampTurn(90,'R',8)) {
-                            state = test;
+                        if (RampTurn(85,'R',8)) {
+                            if (HoneIR(goal)) {
+                                // state = test;
+                                state = launch;
+                                orientation = right;
+                            }
                         }
                         break;
                     default:
