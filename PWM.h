@@ -16,7 +16,7 @@ void PWM_Out(double Freq, double DC, int PS, int Ch);
 int PS_bit(int PS);
 void VOut1(double voltage);
 void VOut2(double voltage);
-
+void ServoControl(double angle);
 
 #ifdef	__cplusplus
 }

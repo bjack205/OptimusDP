@@ -95,7 +95,7 @@ int TurnRobot(double angle, char direction, int speed, int step_size){
         case 2: //Holding
             if (gtime-turntime > 500){
                 turnstate = 0;
-                _LATB0 = 0; // Sleep Motor
+                _LATB7 = 0; // Sleep Motor
                 return 1;
             }
     }
@@ -131,7 +131,7 @@ int DriveRobot(double distance, char direction, int speed, int step_size) {
         case 2: //Holding
             if (gtime-holdtime > 500){
                 drivestate = 0;
-                _LATB0 = 0; // Sleep Motor
+                _LATB7 = 0; // Sleep Motor
                 return 1;
             }
             
@@ -219,7 +219,7 @@ int RampTurn(double angle, char direction, int step_size) {
                 turnstate = 0;
                 ramp_time = 0;
                 ramp_speed = 20;
-                _LATB0 = 0; // Sleep Motor
+                _LATB7 = 0; // Sleep Motor
                 return 1;
             }
             break;
@@ -307,7 +307,7 @@ int RampDrive(double distance, char direction, int step_size) {
                 ramp_speed = 20;
                 StepperStop();
                 if (state != tohome)
-                    _LATB0 = 0; // Sleep Motor
+                    _LATB7 = 0; // Sleep Motor
                 return 1;
             }
             break;
@@ -377,8 +377,8 @@ int CollectBalls(double angle1, double angle2, int num){
     static int startTime = 0;
     static int repeatCount = 1;
     
-    int timeON = 500;
-    int timeOFF = 500;
+    int timeON = 200;
+    int timeOFF = 200;
     switch (servostate){
         case 0:
             startTime = gtime;
@@ -492,6 +492,7 @@ int main () {
     config_IR();
     config_step1();
     PWM2_Config(8);
+    ServoControl(90.0);
     
     _TRISA4 = 0;
     
@@ -518,18 +519,6 @@ int main () {
     int speed = 3;
     
     
-    if (0){
-        int i = 20;
-        int time = gtime;
-        while(i<400) {
-            if (gtime - time > 15){
-                stepper_out_ramp(2, 'F', i);
-                time = gtime;
-                i++;
-            }
-        }
-    }
-    
     //_LATB1 = 1;
     //_LATB8 = 1;
     float VoltageFront = 0;
@@ -539,15 +528,15 @@ int main () {
             case test:
                 if (Start_Check()){
                     orientation = forward;
-                    state = reload;
+                    state = test2;
                 }
                 else {
                     
                 }
                 break;
             case test2:
-                TurnRobot(100,'R',1,8);
-                if (0){
+                if (CollectBalls(90,90-30,3)){
+                    ServoControl(90);
                     state = test;
                 }
                 break;
@@ -611,11 +600,11 @@ int main () {
                 VoltageFront = ADC1BUF0 /4095.0 *3.3;
                 if (VoltageFront > 1.2){
                     StepperStop();
-                    _LATB0 = 1;
+                    _LATB7 = 1;
                     state = fliparound;
                 }
                 else {
-                    //_LATB0 = 0;
+                    //_LATB7 = 0;
                 }
                 break;
             case fliparound:
@@ -637,7 +626,7 @@ int main () {
             case reload:
                 if(CollectBalls(175.0,135.0,3)){
                     state = test;
-                    //_LATB0 = 0; // Sleep Motor
+                    //_LATB7 = 0; // Sleep Motor
                 }
                 break;
             case start:

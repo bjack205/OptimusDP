@@ -57,7 +57,7 @@ void PWM2_Config(int PS){
     OC2CON1bits.OCM = 0b110; //Edge-aligned
     
     //Turn on Timer 3
-    T3CONbits.TON = 1; 
+    //T3CONbits.TON = 1; 
 }
 
 void PWM3_Config(int PS){
@@ -170,9 +170,12 @@ void VOut2(double voltage) {
 }
 
 void ServoControl(double angle) {
+    //Turn on Timer 3
+    T3CONbits.TON = 1;
+    
     //Controls Servo on OC2 (Pin 4)
-    double Tmax = 2.5/1000.0;
-    double Tmin = 0.6/1000.0;
+    double Tmax = 2.3/1000.0;
+    double Tmin = 0.5/1000.0;
     double Fpwm = 50; //Cycles per second, 30-50
     int PS = 8; //Pre-scaling
     

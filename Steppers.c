@@ -8,10 +8,9 @@ void config_step1(void)
     _ANSA3 = 0; // Set pin 8 as digital. M1
     _TRISA3 = 0; // Set pin 8 as output.
     
-    //Set up SLEEP on Pin 4 (RB0)
-    _ANSB0 = 0; // Set pin 4 as digital
-    _TRISB0 = 0; // Set pin 4 as output
-    _LATB0 = 0; //Default to off
+    //Set up SLEEP on Pin 11 (RB7)
+    _TRISB7 = 0; // Set pin 4 as output
+    _LATB7 = 0; //Default to off
     
     PWM1_Config(64); // Configure Pin 14 as PWM for Step
     
@@ -36,7 +35,7 @@ void config_step1(void)
 void stepper_out(int stepsize, char direction, int speed)
 {
     //Turn off sleep
-    _LATB0 = 1;
+    _LATB7 = 1;
     
     //Set Step Size (Reciprocal of Step: 2 = 1/2 step, 8 = 1/8 step)
     switch (stepsize){
@@ -124,7 +123,7 @@ void stepper_out(int stepsize, char direction, int speed)
 void stepper_out_ramp(int stepsize, char direction, int freq)
 {
     //Turn off sleep
-    _LATB0 = 1;
+    _LATB7 = 1;
     
     //Set Step Size (Reciprocal of Step: 2 = 1/2 step, 8 = 1/8 step)
     switch (stepsize){
