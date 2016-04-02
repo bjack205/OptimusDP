@@ -16,7 +16,7 @@ int start_button = 0;
 
 //State Variables
 typedef enum{start,fliparound, FindHome, Reorient, tohome, reload, tocenter, findgoal, launch,  test, test2} statedef;
-statedef state = start;
+statedef state = start; //FindHome
 int goal = -1; //Active Goal
 typedef enum{forward,left,right,backwards,none} orientdef;
 orientdef orientation = none; //Where front is pointing: 1=forward, 2=left, 3=right, 4=backwards
@@ -248,12 +248,6 @@ int RampTurn(double angle, char direction, int step_size) {
             // TMR2 = 0;
             T3CONbits.TON = 1;
             
-            // My only thought with the interrupt is that unless we don't have the timer 
-            // running until we are running some sort of honing function, and the IR
-            // picks up the LED sometime during our driving, the robot might start running
-            // whatever code we set up in the interrupt prematurely. I think the function I wrote
-            // for HoneIR should work to find the goal without an interrupt and begin
-            // launching after it's found.
             
             if (step > step_target + 200*creepstep){ // Failsafe
                 turnstate = 4;
@@ -622,7 +616,8 @@ int main () {
                 }
                 if (done){
                     orientation = forward;
-                    state = test;
+                    //state = test;
+                    state = tohome;
                     done = 0;
                 }
                 
@@ -641,12 +636,12 @@ int main () {
                         }
                         break;
                     case 1: //Left Goal
-                        if (RampTurn(85,'L',8)) {
+                        if (RampTurn(90,'L',8)) {
                             orientation = left;
                         }
                         break;
                     case 2: //Right Goal
-                        if (RampTurn(85,'R',8)) {
+                        if (RampTurn(90,'R',8)) {
                             orientation = right;
                         }
                         break;
@@ -655,16 +650,17 @@ int main () {
                 }
                 break;
             case FindHome:
-                TurnRobot(360*2,'R',1,8);
-                VoltageFront = ADC1BUF0 /4095.0 *3.3;
-                if (VoltageFront > 1.2){
-                    StepperStop();
-                    _LATB7 = 1;
-                    state = fliparound;
-                }
-                else {
-                    //_LATB7 = 0;
-                }
+                //if (Start_Check()) {
+                    TurnRobot(360 * 2, 'R', 1, 8);
+                    VoltageFront = ADC1BUF0 / 4095.0 * 3.3;
+                    if (VoltageFront > 1.2) {
+                        StepperStop();
+                        _LATB7 = 1;
+                        state = fliparound;
+                    } else {
+                        //_LATB7 = 0;
+                    }
+                //}
                 break;
             case fliparound:
                 if (RampTurn(200,'R',8)){
@@ -673,8 +669,8 @@ int main () {
                 break;
             case launch:
                 if (Launch()){
-                    state = test;
-                    //state = FindHome;
+                    //state = test;
+                    state = Reorient;
                 }
                 break;
             case tocenter:
