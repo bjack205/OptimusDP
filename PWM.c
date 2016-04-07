@@ -114,7 +114,7 @@ void PWM_Out(double Freq, double DC, int PS, int Ch){
             OC1RS = Tperiod;
             PR2 = Tperiod;
             T2CONbits.TCKPS = PS_bit(PS);
-            break;
+            break; // Added Breaks here... was fairly certain you meant to have them
         case 2:
             //TMR3 = 0;
             OC2R = Ton_ticks;
