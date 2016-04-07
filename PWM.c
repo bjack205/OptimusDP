@@ -114,16 +114,19 @@ void PWM_Out(double Freq, double DC, int PS, int Ch){
             OC1RS = Tperiod;
             PR2 = Tperiod;
             T2CONbits.TCKPS = PS_bit(PS);
+            break;
         case 2:
             //TMR3 = 0;
             OC2R = Ton_ticks;
             PR3 = Tperiod;
             T3CONbits.TCKPS = PS_bit(PS);
+            break;
         case 3:
             //TMR4 = 0;
             OC3R = Ton_ticks;
             PR4 = Tperiod;
             T4CONbits.TCKPS = PS_bit(PS);
+            break;
     }
     
 }
@@ -150,7 +153,7 @@ void VOut1(double voltage) {
 }
 
 void VOut2(double voltage) {
-    //Output voltage to OC1 (Pin 14)
+    //Output voltage to OC2 (Pin 44)
     
     //Configurable Params
     double Fpwm = 1000;
@@ -167,6 +170,26 @@ void VOut2(double voltage) {
     //Write PWM Period
     double Tperiod = (Tpwm/(Tcy*PS)-1);
     PR3 = Tperiod;
+}
+
+void VOut3(double voltage){
+    //Output voltage to OC3 (Pin 5)
+    
+    //Configurable Params
+    double Fpwm = 10000;
+    int PS = 1; //Pre-scaling
+    
+    double DC = voltage/Vref;
+    double Tcy = 1.0/Fcy;
+    double Tpwm = 1.0/Fpwm;
+    
+    //Write ON time
+    double Ton = (Tpwm/(Tcy*PS)-1)*DC;
+    OC3R = Ton;
+    
+    //Write PWM Period
+    double Tperiod = (Tpwm/(Tcy*PS)-1);
+    PR4 = Tperiod;
 }
 
 void ServoControl(double angle) {
