@@ -256,7 +256,7 @@ int RampDrive(double distance, char direction, int step_size) {
     int ramp_rate = 2;
     int delay = 2;
     int speed = 300;
-    int crashspeed = 50;
+    int crashspeed = 100;
     
     switch (drivestate){
         case 0: //Start
@@ -353,11 +353,11 @@ int Solenoid(double timeON, double timeOFF, int repeat){
         case 0: //New
             startTime = gtime;
             SolState = 1;
-            _LATB4 = 1;
+            _LATB8 = 1;
             break;
         case 1: // Activated
             if (gtime - startTime > timeON){ //On time finished
-                _LATB4 = 0; // Turn off
+                _LATB8 = 0; // Turn off
                 SolState = 2;
             }
             break;
@@ -384,10 +384,11 @@ int CollectBalls(double angle1, double angle2, int num){
     static int startTime = 0;
     static int repeatCount = 1;
     
-    int timeON = 200;
+    int timeON = 400;
     int timeOFF = 200;
     switch (servostate){
         case 0:
+            _LATB7 = 1;
             startTime = gtime;
             servostate = 1;
             ServoControl(angle1);//Initial Angle
@@ -413,6 +414,9 @@ int CollectBalls(double angle1, double angle2, int num){
         case 3: // End
             servostate = 0;
             repeatCount = 1;
+            T3CONbits.TON = 0;
+            _LATB7 = 0;
+            ServoControl(angle1);
             return 1;
     }
     return 0;     
@@ -524,8 +528,8 @@ int main () {
     config_IR();
     config_step1();
     PWM2_Config(8);
-    ServoControl(90.0);
-    
+    PWM3_Config(1);
+    ServoControl(90);
     _TRISA4 = 0;
     
     //Configure LAUNCH Pin on Pin 9
@@ -560,15 +564,16 @@ int main () {
             case test:
                 if (Start_Check()){
                     orientation = forward;
+                    //StepperStop();
                     state = test2;
+                    //ServoControl(90);
                 }
                 else {
                     
                 }
                 break;
             case test2:
-                if (CollectBalls(90,90-30,3)){
-                    ServoControl(90);
+                if (Solenoid(200,200,6)){
                     state = test;
                 }
                 break;
@@ -664,9 +669,9 @@ int main () {
                 }
                 break;
             case reload:
-                if(CollectBalls(175.0,135.0,3)){
+                if(CollectBalls(90,90-30,3)){
                     state = test;
-                    //_LATB7 = 0; // Sleep Motor
+                    _LATB7 = 0; // Sleep Motor
                 }
                 break;
             case start:
