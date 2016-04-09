@@ -9,7 +9,8 @@ _FICD(ICS_PGx1) //Set Debug Pins
 _FOSC(OSCIOFNC_OFF)//Turn off CLK output on Pin 8
         
 // Global Variables
-int gtime = 0;
+int runtime = 0; //seconds
+int gtime = 0; //mils
 int step = 0;
 int step_target = 0;
 int start_button = 0;
@@ -38,12 +39,21 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt(void)
 
     // Increment Global Time
     gtime++;
+    if (gtime >= 1000){
+        runtime++;
+        gtime = 0;
+    }
+    
     
 }
 
 void __attribute__((interrupt, no_auto_psv)) _T2Interrupt(void)
 {
     _T2IF = 0;
+}
+
+double GetTime(){
+    return (double)(runtime)*1000.0+(double)(gtime);
 }
 
 //**************************************MOBILITY CODE********************************************
@@ -92,11 +102,11 @@ int TurnRobot(double angle, char direction, int speed, int step_size){
         case 1: //Turning
             if (StepFinished()){ // Finished
                 turnstate = 2;
-                turntime = gtime;
+                turntime = GetTime();
             }          
             break;
         case 2: //Holding
-            if (gtime-turntime > 500){
+            if (GetTime()-turntime > 500){
                 turnstate = 0;
                 _LATB7 = 0; // Sleep Motor
                 return 1;
@@ -128,11 +138,11 @@ int DriveRobot(double distance, char direction, int speed, int step_size) {
         case 1: //Driving
             if (StepFinished()){ // Finished
                 drivestate = 2;
-                holdtime = gtime;
+                holdtime = GetTime();
             }          
             break;
         case 2: //Holding
-            if (gtime-holdtime > 500){
+            if (GetTime()-holdtime > 500){
                 drivestate = 0;
                 _LATB7 = 0; // Sleep Motor
                 return 1;
@@ -173,16 +183,16 @@ int RampTurn(double angle, char direction, int step_size) {
 
             angle = angle * PI / 180.0; //convert to radians
             step_target = R_base * angle*step_size; // calculate number of steps
-            ramp_time = gtime;
+            ramp_time = GetTime();
             
             turnstate = 1;
             stepper_out_ramp(step_size, direction, ramp_speed);
             break;
         case 1: //Ramp up Speed
             if (ramp_speed < speed) {
-                if (gtime-ramp_time > delay){
+                if (GetTime()-ramp_time > delay){
                     ramp_speed += ramp_rate;
-                    ramp_time = gtime;
+                    ramp_time = GetTime();
                     
                     stepper_out_ramp(step_size, direction, ramp_speed);
                 }
@@ -202,7 +212,7 @@ int RampTurn(double angle, char direction, int step_size) {
             break;
         case 3: // Ramp down to stop
             if (StepFinished()){ // Stop
-                ramp_time = gtime;
+                ramp_time = GetTime();
                 turnstate = 4;
                 //if (state == findgoal){
                 if (state == findgoal){ // Enable Creep
@@ -211,15 +221,15 @@ int RampTurn(double angle, char direction, int step_size) {
                 }
             }    
             else { 
-                if (gtime-ramp_time > delay && ramp_speed > 30) {
+                if (GetTime()-ramp_time > delay && ramp_speed > 30) {
                     ramp_speed -= ramp_rate+1;
-                    ramp_time = gtime;
+                    ramp_time = GetTime();
                     stepper_out_ramp(step_size, direction, ramp_speed);
                 }
             }
             break;
         case 4: //Hold
-            if (gtime-ramp_time > 200){
+            if (GetTime()-ramp_time > 200){
                 turnstate = 0;
                 ramp_time = 0;
                 ramp_speed = 20;
@@ -276,15 +286,15 @@ int RampDrive(double distance, char direction, int step_size) {
                 step_size = 1; //default to whole step
 
             step_target = distance*step_size; // calculate number of steps
-            ramp_time = gtime;
+            ramp_time = GetTime();
             
             drivestate = 1;
             break;
         case 1: //Ramp up Speed
             if (ramp_speed < speed) {
-                if (gtime-ramp_time > delay){
+                if (GetTime()-ramp_time > delay){
                     ramp_speed += ramp_rate;
-                    ramp_time = gtime;
+                    ramp_time = GetTime();
                     
                     stepper_out_ramp(step_size, direction, ramp_speed);
                 }
@@ -301,7 +311,7 @@ int RampDrive(double distance, char direction, int step_size) {
             break;
         case 3: // Ramp down to stop
             if (StepFinished()){ // Stop
-                ramp_time = gtime;
+                ramp_time = GetTime();
                 drivestate = 4;
                 if (state == tohome){
                     drivestate = 5;
@@ -309,15 +319,15 @@ int RampDrive(double distance, char direction, int step_size) {
                 }
             }    
             else { 
-                if (gtime-ramp_time > delay && ramp_speed > crashspeed) {
+                if (GetTime()-ramp_time > delay && ramp_speed > crashspeed) {
                     ramp_speed -= ramp_rate+1;
-                    ramp_time = gtime;
+                    ramp_time = GetTime();
                     stepper_out_ramp(step_size, direction, ramp_speed);
                 }
             }
             break;
         case 4: //Hold
-            if (gtime-ramp_time > 200){
+            if (GetTime()-ramp_time > 200){
                 drivestate = 0;
                 ramp_time = 0;
                 ramp_speed = 20;
@@ -329,16 +339,16 @@ int RampDrive(double distance, char direction, int step_size) {
             break;
         case 5:
             if (WallContact()){
-                ramp_time = gtime;
-                drivestate = 6;
+                ramp_time = GetTime();
+                drivestate = 4;
             }
             if (step > step_target + 200*step_size){ // Failsafe
                 //drivestate = 4;
             }    
             break;
         case 6: //Push into wall
-            if (gtime-ramp_time > 2000){
-                ramp_time = gtime;
+            if (GetTime()-ramp_time > 2000){
+                ramp_time = GetTime();
                 drivestate = 4;
             }
     }
@@ -352,6 +362,8 @@ int Start_Check() {
     if (_RB14 == 1) {
         if (start_button == 0) { // Button Pressed 
             value = 1;
+            gtime = 0;
+            runtime = 0;
         }
         start_button = 1;
     }
@@ -373,18 +385,18 @@ int Solenoid(double timeON, double timeOFF, int repeat){
     static int repeat_count = 1;
     switch (SolState){
         case 0: //New
-            startTime = gtime;
+            startTime = GetTime();
             SolState = 1;
             _LATB8 = 1;
             break;
         case 1: // Activated
-            if (gtime - startTime > timeON){ //On time finished
+            if (GetTime() - startTime > timeON){ //On time finished
                 _LATB8 = 0; // Turn off
                 SolState = 2;
             }
             break;
         case 2: //Off
-            if (gtime - startTime > timeON + timeOFF) {
+            if (GetTime() - startTime > timeON + timeOFF) {
                 if (repeat_count >= repeat){
                     SolState = 3; //Exit
                 }
@@ -406,24 +418,24 @@ int CollectBalls(double angle1, double angle2, int num){
     static int startTime = 0;
     static int repeatCount = 1;
     
-    int timeON = 400;
-    int timeOFF = 200;
+    int timeON = 300;
+    int timeOFF = 500;
     switch (servostate){
         case 0:
             _LATB7 = 1;
-            startTime = gtime;
+            startTime = GetTime();
             servostate = 1;
             ServoControl(angle1);//Initial Angle
             break;
         case 1:
-            if (gtime - startTime > timeON){ //On time finished
+            if (GetTime() - startTime > timeON){ //On time finished
                 ServoControl(angle2); //Interrupt Angle
-                startTime = gtime; 
+                startTime = GetTime(); 
                 servostate = 2;
             }
             break;
         case 2: //Interupting Beam
-            if (gtime - startTime > timeON + timeOFF) {
+            if (GetTime() - startTime > timeON + timeOFF) {
                 if (repeatCount >= num){
                     servostate = 3; //Exit
                 }
@@ -646,7 +658,7 @@ int main () {
                 break;
             case tocenter:
                 if (RampDrive(670,'F',8)){ //670
-                    if (gtime <= 15.5*1000){
+                    if (GetTime() <= 15.5*1000){
                         state = wait;
                     } 
                     else {
@@ -656,7 +668,7 @@ int main () {
                 }
                 break;
             case wait:
-                if (gtime > 15.5*1000){
+                if (GetTime() > 15.5*1000){
                     goal = ReadIR();
                     state = findgoal;
                 }
