@@ -354,6 +354,10 @@ int Start_Check() {
  }
 
 //****************************************LAUNCH CODE******************************************
+void MotorControl(float percent){
+    PWM_Out(10000,percent,1,3);
+}
+
 int Solenoid(double timeON, double timeOFF, int repeat){
     static int SolState = 0;
     static int startTime = 0;
@@ -437,20 +441,22 @@ int Launch(){
     
     switch (launchstate){
         case 0:
+            StepperSleep(1);
             stime = gtime;
-            _LATB1 = 1; // Turn on Motor
+            MotorControl(85);
             launchstate = 1;
             break;
         case 1: //Release balls
-            if (Solenoid(50,100,6)){
+            if (Solenoid(200,100,6)){
                 launchstate = 2;
             }
             break;
         case 2: //Turn off motor
-                _LATB1 = 0; // Turn off motor
-                launchstate = 0;
-                stime = 0;
-                return 1;
+            MotorControl(0);
+            launchstate = 0;
+            stime = 0;
+            StepperSleep(1);
+            return 1;
             
     }
     return 0;
@@ -517,7 +523,7 @@ int main () {
     ServoControl(90);
     _TRISA4 = 0;
     
-    //Configure LAUNCH Pin on Pin 9
+    //Configure Pin 9
     _ANSB4 = 0; // Set Pin 9 as digital
     _TRISB4 = 0; // Set up Pin 9 as output
     
@@ -528,6 +534,11 @@ int main () {
     //Configure Right Button on Pin 17
     _ANSB14 = 0;
     _TRISB14 = 1;
+    
+    //Configure Launch on Pin 5
+    _ANSB1 = 0;
+    _TRISB1 = 1;
+    MotorControl(0);
     
     _TRISB8 = 0;
     
