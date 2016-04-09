@@ -250,6 +250,9 @@ int RampTurn(double angle, char direction, int step_size) {
 int WallContact(){
     int LBump = _RB15;
     int RBump = _RB14;
+    
+    //******TEMPORARY FIX**************
+    LBump = 1;
     if (LBump && RBump) //Both buttons pressed
         return 1;
     return 0;
@@ -326,12 +329,18 @@ int RampDrive(double distance, char direction, int step_size) {
             break;
         case 5:
             if (WallContact()){
-                drivestate = 4;
+                ramp_time = gtime;
+                drivestate = 6;
             }
             if (step > step_target + 200*step_size){ // Failsafe
                 //drivestate = 4;
             }    
             break;
+        case 6: //Push into wall
+            if (gtime-ramp_time > 2000){
+                ramp_time = gtime;
+                drivestate = 4;
+            }
     }
     return 0;
 }
