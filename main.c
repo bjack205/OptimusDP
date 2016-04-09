@@ -43,34 +43,10 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt(void)
 
 void __attribute__((interrupt, no_auto_psv)) _T2Interrupt(void)
 {
-    // Clear Timer2 interrupt flag so that the program doesn't just jump
-    // back to this function when it returns to the while(1) loop.
     _T2IF = 0;
-
-//    if (ADC1BUF0 /4095.0 *3.3 > 1.2) {
-//        StepperStop();
-//        state = test;
-//    }
-
-    // Increase step by 1 
-
-    //step = step + 1;
-    
 }
 
-void __attribute__((interrupt, no_auto_psv)) _T3Interrupt(void)
-{
-    // Clear Timer3 interrupt flag so that the program doesn't just jump
-    // back to this function when it returns to the while(1) loop.
-    /*
-    _T3IF = 0;
-    if (ADC1BUF0 /4095.0 *3.3 > 1.2) {
-        StepperStop();
-        state = test;
-    }
-    */
-}
-
+//**************************************MOBILITY CODE********************************************
 void StepperStop(){
     stepper_out(1, 0, 0);
 }
@@ -353,6 +329,7 @@ int RampDrive(double distance, char direction, int step_size) {
     return 0;
 }
 
+//*************************************OTHER CODE**************************************************
 int Start_Check() {
     int value = 0;
     if (_RB14 == 1) {
@@ -368,6 +345,7 @@ int Start_Check() {
     
  }
 
+//****************************************LAUNCH CODE******************************************
 int Solenoid(double timeON, double timeOFF, int repeat){
     static int SolState = 0;
     static int startTime = 0;
@@ -470,6 +448,7 @@ int Launch(){
     return 0;
 }
 
+//********************************************IR CODE***********************************************
 int ReadIR() {
     //static char IRState = 'H'; // H = Home, S = Search for IR, F = Found IR and hone in
     float IRThreshold = VThresh_Side;
@@ -498,31 +477,6 @@ int ReadIR() {
     return -1;
 }
 
-//int HoneIR(int Goal_Selection) {
-//    float VoltageFront = (ADC1BUF0 / 4095.0) * 3.3;
-//    float IRThreshold = 1.0;
-//    switch (Goal_Selection) {
-//        case 1: //Left
-//            if (VoltageFront >= IRThreshold) {
-//                return 1;
-//            }
-//            RampTurn(2,'L',16);
-//            break;
-//        case 2: // Right
-//            if (VoltageFront >= IRThreshold) {
-//                return 1;
-//            }
-//            RampTurn(2,'R',16);
-//            break;
-//        default:
-//            if (VoltageFront >= IRThreshold) {
-//                return 1;
-//            }
-//            break;
-//    }
-//    return 0;
-//}
-
 int LocateDispenser(){
     static int locatestate = 0;
     float VoltageFront;
@@ -544,7 +498,7 @@ int LocateDispenser(){
     return 0;
 }
 
-
+//***************************MAIN FUNCTION******************************************
 int main () {
     TMR1_Config();
     config_ad();
