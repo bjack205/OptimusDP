@@ -13,6 +13,8 @@ int gtime = 0;
 int step = 0;
 int step_target = 0;
 int start_button = 0;
+float VThresh_Front = 2.5;
+float VThresh_Side = 2.5;
 
 //State Variables
 typedef enum{start,fliparound, FindHome, Reorient, tohome, reload, tocenter, findgoal, launch,  test, test2} statedef;
@@ -253,7 +255,7 @@ int RampTurn(double angle, char direction, int step_size) {
             if (step > step_target + 400*creepstep){ // Failsafe
                 turnstate = 4;
             }
-            if (ADC1BUF4/4095.0 * 3.3 > 2.5) {
+            if (ADC1BUF4/4095.0 * 3.3 > VThresh_Front) {
                 turnstate = 4;
             }
             
@@ -470,7 +472,7 @@ int Launch(){
 
 int ReadIR() {
     //static char IRState = 'H'; // H = Home, S = Search for IR, F = Found IR and hone in
-    float IRThreshold = 1.0;
+    float IRThreshold = VThresh_Side;
     float VoltageFront = 0; //(ADC1BUF4 / 4095.0) * 3.3;
     float VoltageLeft = (ADC1BUF0 / 4095.0) * 3.3;
     float VoltageRight = (ADC1BUF1 / 4095.0) * 3.3;
@@ -530,7 +532,7 @@ int LocateDispenser(){
             break;
         case 1: //Turn Robot
             VoltageFront = ADC1BUF4 / 4095.0 *3.3;
-            if (VoltageFront > 1.5){
+            if (VoltageFront > VThresh_Front){
                 locatestate = 2;
             }
             break;
@@ -667,7 +669,7 @@ int main () {
                 //if (Start_Check()) {
                     TurnRobot(360 * 2, 'R', 1, 8);
                     VoltageFront = ADC1BUF4 / 4095.0 * 3.3;
-                    if (VoltageFront > 2.0) {
+                    if (VoltageFront > VThresh_Front) {
                         StepperStop();
                         _LATB7 = 1;
                         state = fliparound;
