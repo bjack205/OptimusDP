@@ -262,9 +262,9 @@ int RampDrive(double distance, char direction, int step_size) {
     static int drivestate = 0;
     static double ramp_speed = 20;
     static int ramp_time = 0;
-    int ramp_rate = 2;
+    int ramp_rate = 1;
     int delay = 2;
-    int speed = 300;
+    int speed = 200;
     int crashspeed = 100;
     
     switch (drivestate){
@@ -309,7 +309,7 @@ int RampDrive(double distance, char direction, int step_size) {
                 }
             }    
             else { 
-                if (gtime-ramp_time > delay && ramp_speed > 30) {
+                if (gtime-ramp_time > delay && ramp_speed > crashspeed) {
                     ramp_speed -= ramp_rate+1;
                     ramp_time = gtime;
                     stepper_out_ramp(step_size, direction, ramp_speed);
