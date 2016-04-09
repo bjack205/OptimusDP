@@ -456,7 +456,7 @@ int Launch(){
             launchstate = 1;
             break;
         case 1: //Release balls
-            if (Solenoid(200,100,6)){
+            if (Solenoid(200,200,6)){
                 launchstate = 2;
             }
             break;
@@ -570,7 +570,7 @@ int main () {
                 if (Start_Check()){
                     orientation = forward;
                     //StepperStop();
-                    state = tocenter;
+                    state = FindHome;
                     //ServoControl(90);
                 }
                 else {
@@ -578,8 +578,29 @@ int main () {
                 }
                 break;
             case test2:
-                if (Solenoid(200,200,6)){
-                    state = test;
+                if (_RB14){
+                    MotorControl(100);
+                }
+                else{
+                    MotorControl(0);
+                }
+                break;
+            case FindHome:
+                //if (Start_Check()) {
+                    TurnRobot(360 * 2, 'R', 1, 8);
+                    VoltageFront = ADC1BUF4 / 4095.0 * 3.3;
+                    if (VoltageFront > VThresh_Front) {
+                        StepperStop();
+                        _LATB7 = 1;
+                        state = fliparound;
+                    } else {
+                    //_LATB7 = 0;
+                }
+                //}
+                break;
+            case fliparound:
+                if (RampTurn(180,'R',8)){
+                    state = tohome;
                 }
                 break;
             case Reorient:
@@ -617,8 +638,25 @@ int main () {
                     state = reload;
                 }
                 break;
+            case reload:
+                if(CollectBalls(90,90-30,3)){
+                    state = tocenter;
+                    _LATB7 = 0; // Sleep Motor
+                }
+                break;
             case tocenter:
                 if (RampDrive(670,'F',8)){ //670
+                    if (gtime <= 15.5*1000){
+                        state = wait;
+                    } 
+                    else {
+                        goal = ReadIR();
+                        state = findgoal;
+                    }
+                }
+                break;
+            case wait:
+                if (gtime > 15.5*1000){
                     goal = ReadIR();
                     state = findgoal;
                 }
@@ -627,19 +665,19 @@ int main () {
                 switch (goal){
                     case -1: //Forward
                         if (RampTurn(-15,'R',8)) { //Turn Right and then hone left
-                            state = test;
+                            state = launch;
                             orientation = forward;
                         }
                         break;
                     case 1: //Left Goal
                         if (RampTurn(85,'L',8)) {
-                                state = test;
+                                state = launch;
                                 orientation = left;
                             }
                         break;
                     case 2: //Right Goal
                         if (RampTurn(85,'R',8)) {
-                            state = test;    
+                            state = launch;    
                             orientation = right;
                             }
                         break;
@@ -647,37 +685,15 @@ int main () {
                         state = test;
                 }
                 break;
-            case FindHome:
-                //if (Start_Check()) {
-                    TurnRobot(360 * 2, 'R', 1, 8);
-                    VoltageFront = ADC1BUF4 / 4095.0 * 3.3;
-                    if (VoltageFront > VThresh_Front) {
-                        StepperStop();
-                        _LATB7 = 1;
-                        state = fliparound;
-                    } else {
-                    //_LATB7 = 0;
-                }
-                //}
-                break;
-            case fliparound:
-                if (RampTurn(180,'R',8)){
-                    state = tohome;
-                }
-                break;
+            
             case launch:
                 if (Launch()){
                     //state = test;
-                    state = Reorient;
+                    state = test;
                 }
                 break;
             
-            case reload:
-                if(CollectBalls(90,90-30,3)){
-                    state = tocenter;
-                    _LATB7 = 0; // Sleep Motor
-                }
-                break;
+            
             case start:
                 if (Start_Check()) {
                     _LATA0 = 1;
