@@ -47,6 +47,13 @@ void __attribute__((interrupt, no_auto_psv)) _T2Interrupt(void)
 }
 
 //**************************************MOBILITY CODE********************************************
+void StepperSleep(int sleep){
+    if (sleep)
+        _LATB7 = 0; //Sleep Motor
+    else
+        _LATB7 = 1; //Activate Motor
+}
+
 void StepperStop(){
     stepper_out(1, 0, 0);
 }
@@ -330,6 +337,7 @@ int RampDrive(double distance, char direction, int step_size) {
 }
 
 //*************************************OTHER CODE**************************************************
+
 int Start_Check() {
     int value = 0;
     if (_RB14 == 1) {
