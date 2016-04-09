@@ -13,11 +13,11 @@ int gtime = 0;
 int step = 0;
 int step_target = 0;
 int start_button = 0;
-float VThresh_Front = 2.5;
+float VThresh_Front = 2.8;
 float VThresh_Side = 2.5;
 
 //State Variables
-typedef enum{start,fliparound, FindHome, Reorient, tohome, reload, tocenter, findgoal, launch,  test, test2} statedef;
+typedef enum{start,fliparound, FindHome, Reorient, tohome, reload, tocenter, wait, findgoal, launch,  test, test2} statedef;
 statedef state = start; //FindHome
 int goal = -1; //Active Goal
 typedef enum{forward,left,right,backwards,none} orientdef;
