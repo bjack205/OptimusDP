@@ -45,10 +45,10 @@ void __attribute__((interrupt, no_auto_psv)) _T2Interrupt(void)
     // back to this function when it returns to the while(1) loop.
     _T2IF = 0;
 
-    if (ADC1BUF0 /4095.0 *3.3 > 1.2) {
-        StepperStop();
-        state = launch;
-    }
+//    if (ADC1BUF0 /4095.0 *3.3 > 1.2) {
+//        StepperStop();
+//        state = test;
+//    }
 
     // Increase step by 1 
 
@@ -60,12 +60,13 @@ void __attribute__((interrupt, no_auto_psv)) _T3Interrupt(void)
 {
     // Clear Timer3 interrupt flag so that the program doesn't just jump
     // back to this function when it returns to the while(1) loop.
+    /*
     _T3IF = 0;
     if (ADC1BUF0 /4095.0 *3.3 > 1.2) {
         StepperStop();
-        state = launch;
+        state = test;
     }
-    
+    */
 }
 
 void StepperStop(){
@@ -161,8 +162,8 @@ int RampTurn(double angle, char direction, int step_size) {
     static double ramp_speed = 50;
     static int ramp_time = 0;
     int ramp_rate = 2;
-    int delay = 2;
-    int speed = 300;
+    int delay = 3;
+    int speed = 200;
     int creepspeed = 50;
     int creepstep = 16; //Use finest step size
     static char creepdir = 'R';
@@ -219,7 +220,7 @@ int RampTurn(double angle, char direction, int step_size) {
                 ramp_time = gtime;
                 turnstate = 4;
                 //if (state == findgoal){
-                if (state == test2){ // Enable Creep
+                if (state == findgoal){ // Enable Creep
                     turnstate = 5;
                     stepper_out_ramp(creepstep, creepdir, creepspeed);
                 }
@@ -249,10 +250,10 @@ int RampTurn(double angle, char direction, int step_size) {
             T3CONbits.TON = 1;
             
             
-            if (step > step_target + 200*creepstep){ // Failsafe
+            if (step > step_target + 400*creepstep){ // Failsafe
                 turnstate = 4;
             }
-            if (state == launch) {
+            if (ADC1BUF4/4095.0 * 3.3 > 2.5) {
                 turnstate = 4;
             }
             
@@ -470,9 +471,9 @@ int Launch(){
 int ReadIR() {
     //static char IRState = 'H'; // H = Home, S = Search for IR, F = Found IR and hone in
     float IRThreshold = 1.0;
-    float VoltageFront = 0; //(ADC1BUF0 / 4095.0) * 3.3;
-    float VoltageLeft = (ADC1BUF1 / 4095.0) * 3.3;
-    float VoltageRight = (ADC1BUF4 / 4095.0) * 3.3;
+    float VoltageFront = 0; //(ADC1BUF4 / 4095.0) * 3.3;
+    float VoltageLeft = (ADC1BUF0 / 4095.0) * 3.3;
+    float VoltageRight = (ADC1BUF1 / 4095.0) * 3.3;
     
     // Front IR
     if (VoltageFront >= IRThreshold) {
@@ -528,7 +529,7 @@ int LocateDispenser(){
             locatestate = 1;
             break;
         case 1: //Turn Robot
-            VoltageFront = ADC1BUF0 / 4095.0 *3.3;
+            VoltageFront = ADC1BUF4 / 4095.0 *3.3;
             if (VoltageFront > 1.5){
                 locatestate = 2;
             }
@@ -585,7 +586,7 @@ int main () {
                 if (Start_Check()){
                     orientation = forward;
                     //StepperStop();
-                    state = test2;
+                    state = tocenter;
                     //ServoControl(90);
                 }
                 else {
@@ -632,6 +633,12 @@ int main () {
                     state = reload;
                 }
                 break;
+            case tocenter:
+                if (RampDrive(670,'F',8)){ //670
+                    goal = ReadIR();
+                    state = findgoal;
+                }
+                break;
             case findgoal:
                 switch (goal){
                     case -1: //Forward
@@ -641,13 +648,15 @@ int main () {
                         }
                         break;
                     case 1: //Left Goal
-                        if (RampTurn(90,'L',8)) {
+                        if (RampTurn(85,'L',8)) {
+                                state = test;
                                 orientation = left;
                             }
                         break;
                     case 2: //Right Goal
-                        if (RampTurn(90,'R',8)) {
-                                orientation = right;
+                        if (RampTurn(85,'R',8)) {
+                            state = test;    
+                            orientation = right;
                             }
                         break;
                     default:
@@ -657,18 +666,18 @@ int main () {
             case FindHome:
                 //if (Start_Check()) {
                     TurnRobot(360 * 2, 'R', 1, 8);
-                    VoltageFront = ADC1BUF0 / 4095.0 * 3.3;
-                    if (VoltageFront > 1.2) {
-                    StepperStop();
-                    _LATB7 = 1;
-                    state = fliparound;
+                    VoltageFront = ADC1BUF4 / 4095.0 * 3.3;
+                    if (VoltageFront > 2.0) {
+                        StepperStop();
+                        _LATB7 = 1;
+                        state = fliparound;
                     } else {
                     //_LATB7 = 0;
                 }
                 //}
                 break;
             case fliparound:
-                if (RampTurn(200,'R',8)){
+                if (RampTurn(180,'R',8)){
                     state = tohome;
                 }
                 break;
@@ -678,15 +687,10 @@ int main () {
                     state = Reorient;
                 }
                 break;
-            case tocenter:
-                if (RampDrive(670,'F',8)){ //670
-                    goal = ReadIR();
-                    state = findgoal;
-                }
-                break;
+            
             case reload:
                 if(CollectBalls(90,90-30,3)){
-                    state = test;
+                    state = tocenter;
                     _LATB7 = 0; // Sleep Motor
                 }
                 break;
