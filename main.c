@@ -18,7 +18,7 @@ float VThresh_Front = 2.8;
 float VThresh_Side = 2.5;
 
 //State Variables
-typedef enum{start,fliparound, FindHome, Reorient, tohome, reload, tocenter, wait, findgoal, launch,  test, test2} statedef;
+typedef enum{start,fliparound, FindHome, Reorient, tohome, reload, tocenter, wait, findgoal, launch, IRchange, test, test2} statedef;
 statedef state = start; //FindHome
 int goal = -1; //Active Goal
 typedef enum{forward,left,right,backwards,none} orientdef;
@@ -233,7 +233,10 @@ int RampTurn(double angle, char direction, int step_size) {
                 turnstate = 0;
                 ramp_time = 0;
                 ramp_speed = 20;
-                _LATB7 = 0; // Sleep Motor
+                if (state != findgoal){
+                    StepperSleep(1);
+                }
+                StepperStop();
                 T3CONbits.TON = 0;
                 return 1;
             }
@@ -246,7 +249,13 @@ int RampTurn(double angle, char direction, int step_size) {
             
             
             if (step > step_target + 400*creepstep){ // Failsafe
-                turnstate = 4;
+                turnstate = 0;
+                ramp_time = 0;
+                ramp_speed = 20;
+                _LATB7 = 0; // Sleep Motor
+                T3CONbits.TON = 0;
+                return -1;
+                
             }
             if (ADC1BUF4/4095.0 * 3.3 > VThresh_Front) {
                 turnstate = 4;
@@ -577,7 +586,7 @@ int main () {
     
     state = test;
     int speed = 3;
-    
+    int turn_value = 0;
     
     //_LATB1 = 1;
     //_LATB8 = 1;
@@ -685,22 +694,37 @@ int main () {
             case findgoal:
                 switch (goal){
                     case -1: //Forward
-                        if (RampTurn(-15,'R',8)) { //Turn Right and then hone left
+                        turn_value = RampTurn(-15,'R',8);
+                        if (turn_value == 1) { //Turn Right and then hone left
                             state = launch;
+                            orientation = forward;
+                        }
+                        else if (turn_value == -1){
+                            state = IRchange;
                             orientation = forward;
                         }
                         break;
                     case 1: //Left Goal
-                        if (RampTurn(85,'L',8)) {
+                        turn_value = RampTurn(85,'L',8);
+                        if (turn_value == 1) {
                                 state = launch;
                                 orientation = left;
                             }
+                        else if (turn_value == -1){
+                            state = IRchange;
+                            orientation = left;
+                        }
                         break;
                     case 2: //Right Goal
-                        if (RampTurn(85,'R',8)) {
+                        turn_value = RampTurn(85,'R',8);
+                        if (turn_value == 1) {
                             state = launch;    
                             orientation = right;
                             }
+                        else if (turn_value == -1){
+                            state = IRchange;
+                            orientation = right;
+                        }
                         break;
                     default:
                         state = test;
@@ -710,11 +734,34 @@ int main () {
             case launch:
                 if (Launch()){
                     //state = test;
-                    state = test;
+                    state = Reorient;
                 }
                 break;
             
-            
+            case IRchange:
+                switch (orientation){
+                    case forward:
+                        if (RampTurn(400/R_base*(180/PI)-15,'R',8)){
+                            done = 1;
+                        }
+                        break;
+                    case left:
+                        if (RampTurn(400/R_base*(180/PI)+85,'R',8)){
+                            done = 1;
+                        }
+                        break;
+                    case right:
+                        if (RampTurn(400/R_base*(180/PI)+85,'L',8)){
+                            done = 1;
+                        }
+                        break;
+                }
+                if (done){
+                    goal = ReadIR();
+                    state = findgoal;
+                    done = 0;
+                }
+                break;
             case start:
                 if (Start_Check()) {
                     _LATA0 = 1;
