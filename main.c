@@ -9,8 +9,8 @@ _FICD(ICS_PGx1) //Set Debug Pins
 _FOSC(OSCIOFNC_OFF)//Turn off CLK output on Pin 8
         
 // Global Variables
-int runtime = 0; //seconds
-int gtime = 0; //mils
+volatile int runtime = 0; //seconds
+volatile int gtime = 0; //mils
 int step = 0;
 int step_target = 0;
 int start_button = 0;
@@ -435,7 +435,7 @@ int CollectBalls(double angle1, double angle2, int num){
             }
             break;
         case 2: //Interupting Beam
-            if (GetTime() - startTime > timeON + timeOFF) {
+            if ((GetTime() - startTime) > (timeON + timeOFF)) {
                 if (repeatCount >= num){
                     servostate = 3; //Exit
                 }
@@ -446,12 +446,13 @@ int CollectBalls(double angle1, double angle2, int num){
             }
             break;
         case 3: // End
-            servostate = 0;
-            repeatCount = 1;
-            T3CONbits.TON = 0;
-            _LATB7 = 0;
-            ServoControl(angle1);
-            return 1;
+            if (GetTime() - startTime > 500) {
+                servostate = 0;
+                repeatCount = 1;
+                T3CONbits.TON = 0;
+                _LATB7 = 0;
+                return 1;
+            }
     }
     return 0;     
 }
@@ -459,25 +460,31 @@ int CollectBalls(double angle1, double angle2, int num){
 int Launch(){
     static int stime = 0;
     static int launchstate = 0;
-    
+    static int waittime = 0;
     switch (launchstate){
         case 0:
-            StepperSleep(1);
-            stime = gtime;
+            StepperSleep(0);
+            stime = GetTime();
             MotorControl(85);
             launchstate = 1;
+            waittime = GetTime();
             break;
         case 1: //Release balls
-            if (Solenoid(200,200,6)){
-                launchstate = 2;
+            if (GetTime() - waittime > 250) {
+                if (Solenoid(200, 200, 6)) {
+                    launchstate = 2;
+                    waittime = GetTime();
+                }
             }
             break;
         case 2: //Turn off motor
-            MotorControl(0);
-            launchstate = 0;
-            stime = 0;
-            StepperSleep(1);
-            return 1;
+            if (GetTime() - waittime>500){
+                MotorControl(0);
+                launchstate = 0;
+                stime = 0;
+                StepperSleep(1);
+                return 1;
+            }
             
     }
     return 0;
@@ -642,6 +649,8 @@ int main () {
                     //state = test;
                     state = tohome;
                     done = 0;
+                    gtime = 0;
+                    runtime = 0;
                 }
                 
                 break;
