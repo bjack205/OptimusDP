@@ -270,8 +270,6 @@ int WallContact(){
     int LBump = _RB15;
     int RBump = _RB14;
     
-    //******TEMPORARY FIX**************
-    LBump = 1;
     if (LBump && RBump) //Both buttons pressed
         return 1;
     return 0;
@@ -427,8 +425,8 @@ int CollectBalls(double angle1, double angle2, int num){
     static int startTime = 0;
     static int repeatCount = 1;
     
-    int timeON = 300;
-    int timeOFF = 500;
+    int timeON = 500;
+    int timeOFF = 200;
     switch (servostate){
         case 0:
             _LATB7 = 1;
@@ -669,7 +667,7 @@ int main () {
                 }
                 break;
             case reload:
-                if(CollectBalls(90,90-30,3)){
+                if(CollectBalls(90-30,90,3)){
                     state = tocenter;
                     _LATB7 = 0; // Sleep Motor
                 }
