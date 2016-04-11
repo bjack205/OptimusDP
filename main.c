@@ -470,7 +470,7 @@ int Launch(){
         case 0:
             StepperSleep(0);
             stime = GetTime();
-            MotorControl(85);
+            MotorControl(95);
             launchstate = 1;
             waittime = GetTime();
             break;
