@@ -16,6 +16,7 @@ int step_target = 0;
 int start_button = 0;
 float VThresh_Front = 2.8;
 float VThresh_Side = 2.5;
+int failsafe_step = 100;
 
 //State Variables
 typedef enum{start,fliparound, FindHome, Reorient, tohome, reload, tocenter, wait, findgoal, launch, IRchange, test, test2} statedef;
@@ -248,7 +249,7 @@ int RampTurn(double angle, char direction, int step_size) {
             T3CONbits.TON = 1;
             
             
-            if (step > step_target + 400*creepstep){ // Failsafe
+            if (step > step_target + failsafe_step*creepstep){ // Failsafe
                 turnstate = 0;
                 ramp_time = 0;
                 ramp_speed = 20;
@@ -739,17 +740,17 @@ int main () {
             case IRchange:
                 switch (orientation){
                     case forward:
-                        if (RampTurn(400/R_base*(180/PI)-15,'R',8)){
+                        if (RampTurn(failsafe_step/R_base*(180/PI)-15,'R',16)){
                             done = 1;
                         }
                         break;
                     case left:
-                        if (RampTurn(400/R_base*(180/PI)+85,'R',8)){
+                        if (RampTurn(failsafe_step/R_base*(180/PI)+85,'R',16)){
                             done = 1;
                         }
                         break;
                     case right:
-                        if (RampTurn(400/R_base*(180/PI)+85,'L',8)){
+                        if (RampTurn(failsafe_step/R_base*(180/PI)+85,'L',16)){
                             done = 1;
                         }
                         break;
