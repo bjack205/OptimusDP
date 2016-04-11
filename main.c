@@ -323,6 +323,7 @@ int RampDrive(double distance, char direction, int step_size) {
                 drivestate = 4;
                 if (state == tohome){
                     drivestate = 5;
+                    ramp_time = GetTime();
                     stepper_out_ramp(step_size, direction, crashspeed);
                 }
             }    
@@ -350,15 +351,11 @@ int RampDrive(double distance, char direction, int step_size) {
                 ramp_time = GetTime();
                 drivestate = 4;
             }
-            if (step > step_target + 200*step_size){ // Failsafe
-                //drivestate = 4;
-            }    
-            break;
-        case 6: //Push into wall
-            if (GetTime()-ramp_time > 2000){
+            if (GetTime()-ramp_time > 5000){ //Five second failsafe
                 ramp_time = GetTime();
                 drivestate = 4;
-            }
+            }   
+            break;         
     }
     return 0;
 }
