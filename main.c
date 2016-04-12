@@ -469,15 +469,15 @@ int Launch(){
     static int waittime = 0;
     switch (launchstate){
         case 0:
-            StepperSleep(0);
+            StepperSleep(1);
             stime = GetTime();
-            MotorControl(95);
+            MotorControl(85);
             launchstate = 1;
             waittime = GetTime();
             break;
         case 1: //Release balls
             if (GetTime() - waittime > 250) {
-                if (Solenoid(200, 200, 6)) {
+                if (Solenoid(200, 300, 6)) {
                     launchstate = 2;
                     waittime = GetTime();
                 }
@@ -666,20 +666,15 @@ int main () {
                 }
                 break;
             case reload:
-                if(CollectBalls(90-30,90,3)){
+                if(CollectBalls(90-25,90,3)){
                     state = tocenter;
                     _LATB7 = 0; // Sleep Motor
                 }
                 break;
             case tocenter:
-                if (RampDrive(670,'F',8)){ //670
-                    if (GetTime() <= 15.5*1000){
-                        state = wait;
-                    } 
-                    else {
+                if (RampDrive(670,'F',8) && initialround){ //670
                         goal = ReadIR();
                         state = findgoal;
-                    }
                 }
                 break;
             case wait:
