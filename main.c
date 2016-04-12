@@ -159,8 +159,8 @@ int RampTurn(double angle, char direction, int step_size) {
     static int ramp_time = 0;
     int ramp_rate = 2;
     int delay = 3;
-    int speed = 200;
-    int creepspeed = 50;
+    int speed = 250;
+    int creepspeed = 100;
     int creepstep = 16; //Use finest step size
     static char creepdir = 'R';
     
@@ -282,7 +282,7 @@ int RampDrive(double distance, char direction, int step_size) {
     static int ramp_time = 0;
     int ramp_rate = 1;
     int delay = 2;
-    int speed = 200;
+    int speed = 300;
     int crashspeed = 100;
     
     switch (drivestate){
