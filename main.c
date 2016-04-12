@@ -14,8 +14,8 @@ volatile int gtime = 0; //mils
 int step = 0;
 int step_target = 0;
 int start_button = 0;
-float VThresh_Front = 2.8;
-float VThresh_Side = 2.5;
+float VThresh_Front = 2.3;
+float VThresh_Side = 2.0;
 int failsafe_step = 100;
 
 //State Variables
