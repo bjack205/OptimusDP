@@ -215,6 +215,7 @@ int RampTurn(double angle, char direction, int step_size) {
             if (StepFinished()){ // Stop
                 ramp_time = GetTime();
                 turnstate = 4;
+                step = step_target;
                 //if (state == findgoal){
                 if (state == findgoal){ // Enable Creep
                     turnstate = 5;
@@ -701,7 +702,7 @@ int main () {
                         }
                         break;
                     case 1: //Left Goal
-                        turn_value = RampTurn(85,'L',8);
+                        turn_value = RampTurn(75,'L',8);
                         if (turn_value == 1) {
                                 state = launch;
                                 orientation = left;
@@ -712,7 +713,7 @@ int main () {
                         }
                         break;
                     case 2: //Right Goal
-                        turn_value = RampTurn(85,'R',8);
+                        turn_value = RampTurn(75,'R',8);
                         if (turn_value == 1) {
                             state = launch;    
                             orientation = right;
@@ -737,17 +738,17 @@ int main () {
             case IRchange:
                 switch (orientation){
                     case forward:
-                        if (RampTurn(failsafe_step/R_base*(180/PI)-15,'R',16)){
+                        if (RampTurn(42,'R',16)){
                             done = 1;
                         }
                         break;
                     case left:
-                        if (RampTurn(failsafe_step/R_base*(180/PI)+85,'R',16)){
+                        if (RampTurn(130,'R',16)){
                             done = 1;
                         }
                         break;
                     case right:
-                        if (RampTurn(failsafe_step/R_base*(180/PI)+85,'L',16)){
+                        if (RampTurn(130,'L',16)){
                             done = 1;
                         }
                         break;
